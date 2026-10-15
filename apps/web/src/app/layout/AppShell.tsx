@@ -26,7 +26,7 @@ export function AppShell() {
   return (
     <div className="min-h-svh bg-background text-foreground">
       {/* ---------- 桌面侧边栏（lg 及以上）---------- */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-sidebar lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
         <div className="px-4 py-4">
           <Brand />
         </div>
@@ -39,7 +39,7 @@ export function AppShell() {
               end={to === '/'}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors',
+                  'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors',
                   'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
                   isActive
                     ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
@@ -47,18 +47,36 @@ export function AppShell() {
                 )
               }
             >
-              <Icon aria-hidden="true" className="size-4 shrink-0" />
-              <span className="truncate">{label}</span>
-              {phase !== 'P0' ? (
-                <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
-                  {phase}
-                </span>
-              ) : null}
+              {({ isActive }) => (
+                <>
+                  {/* 激活态左侧品牌指示条，增强当前位置感知 */}
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary transition-opacity',
+                      isActive ? 'opacity-100' : 'opacity-0',
+                    )}
+                  />
+                  <Icon
+                    aria-hidden="true"
+                    className={cn(
+                      'size-4 shrink-0 transition-colors',
+                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
+                    )}
+                  />
+                  <span className="truncate">{label}</span>
+                  {phase !== 'P0' ? (
+                    <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                      {phase}
+                    </span>
+                  ) : null}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-3">
+        <div className="flex items-center justify-between gap-2 border-t border-sidebar-border px-3 py-3">
           <Badge variant="outline">MVP · P0 骨架</Badge>
           <ThemeToggle />
         </div>
@@ -91,7 +109,7 @@ export function AppShell() {
               cn(
                 'flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[11px] transition-colors',
                 'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
-                isActive ? 'font-medium text-foreground' : 'text-muted-foreground',
+                isActive ? 'font-medium text-primary' : 'text-muted-foreground',
               )
             }
           >

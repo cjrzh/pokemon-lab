@@ -8,7 +8,7 @@
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: 'Geist Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,73 +49,78 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * 研究所冷蓝主题（值由设计稿 hex 精确换算为 OKLCH，对比度已按 WCAG AA 校验）：
+ *   primary #4F6BED（靛蓝） · accent 取水属性蓝调 · 背景带一丝冷蓝灰。
+ * 深色模式整体偏深蓝黑（#101219），primary 提亮为 #8CA3F8 保证在暗色卡上的可读性。
+ */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --background: oklch(0.979 0.003 264.5);        /* #F7F8FA */
+    --foreground: oklch(0.210 0.010 276.6);        /* #17181D */
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.210 0.010 276.6);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.210 0.010 276.6);
+    --primary: oklch(0.579 0.198 270.0);           /* #4F6BED */
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.955 0.010 267.4);         /* #EDF0F7 */
+    --secondary-foreground: oklch(0.283 0.079 272.5); /* #1D2550 */
+    --muted: oklch(0.958 0.007 268.5);             /* #EFF1F6 */
+    --muted-foreground: oklch(0.499 0.027 266.7);  /* #5C6373 */
+    --accent: oklch(0.949 0.018 269.1);            /* #E9EEFB */
+    --accent-foreground: oklch(0.283 0.079 272.5); /* #1D2550 */
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --border: oklch(0.925 0.013 266.7);            /* #E2E6EF */
+    --input: oklch(0.894 0.020 267.3);             /* #D6DCEA */
+    --ring: oklch(0.732 0.117 272.4);              /* #8FA3F2 */
+    --chart-1: #4f6bed;
+    --chart-2: #8b7cf6;
+    --chart-3: #22b8a6;
+    --chart-4: #6390f0;
+    --chart-5: #64748b;
+    --radius: 0.7rem;
+    --sidebar: oklch(0.988 0.004 271.4);           /* #FAFBFE */
+    --sidebar-foreground: oklch(0.210 0.010 276.6);
+    --sidebar-primary: oklch(0.579 0.198 270.0);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent: oklch(0.949 0.018 269.1);    /* #E9EEFB */
+    --sidebar-accent-foreground: oklch(0.283 0.079 272.5);
+    --sidebar-border: oklch(0.925 0.013 266.7);
+    --sidebar-ring: oklch(0.732 0.117 272.4);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    --background: oklch(0.183 0.015 272.4);        /* #101219 */
+    --foreground: oklch(0.941 0.010 273.4);        /* #E9EBF2 */
+    --card: oklch(0.219 0.023 269.0);              /* #161A25 */
+    --card-foreground: oklch(0.941 0.010 273.4);
+    --popover: oklch(0.219 0.023 269.0);
+    --popover-foreground: oklch(0.941 0.010 273.4);
+    --primary: oklch(0.733 0.126 271.5);           /* #8CA3F8 */
+    --primary-foreground: oklch(0.200 0.065 272.6); /* #0D1233 */
+    --secondary: oklch(0.263 0.031 270.8);         /* #1F2434 */
+    --secondary-foreground: oklch(0.941 0.010 273.4);
+    --muted: oklch(0.254 0.028 269.2);             /* #1D2230 */
+    --muted-foreground: oklch(0.706 0.032 269.0);  /* #98A0B5 */
+    --accent: oklch(0.286 0.044 270.5);            /* #222940 */
+    --accent-foreground: oklch(0.929 0.021 271.2); /* #E2E7F6 */
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --ring: oklch(0.610 0.182 270.3);              /* #5B77EF */
+    --chart-1: #8ca3f8;
+    --chart-2: #a79bf9;
+    --chart-3: #4dd0c0;
+    --chart-4: #8fb2f5;
+    --chart-5: #94a3b8;
+    --sidebar: oklch(0.212 0.028 271.6);           /* #141826 */
+    --sidebar-foreground: oklch(0.941 0.010 273.4);
+    --sidebar-primary: oklch(0.733 0.126 271.5);
+    --sidebar-primary-foreground: oklch(0.200 0.065 272.6);
+    --sidebar-accent: oklch(0.295 0.049 270.2);    /* #232B45 */
+    --sidebar-accent-foreground: oklch(0.929 0.021 271.2);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-ring: oklch(0.610 0.182 270.3);
 }
 
 @layer base {
@@ -123,9 +128,13 @@
     @apply border-border outline-ring/50;
     }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     }
   html {
     @apply font-sans;
     }
+  /* 文本选区使用品牌色，保持「研究所蓝」在交互细节中的存在感 */
+  ::selection {
+    background-color: color-mix(in oklch, var(--primary) 25%, transparent);
+  }
 }
