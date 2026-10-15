@@ -1,0 +1,140 @@
+/**
+ * Pokémon Lab — 设计令牌（Design Tokens）
+ *
+ * 职责边界：
+ *   - 本文件只承载「展示层」令牌：属性配色、语义状态色，以及供 Tailwind 生成工具类。
+ *   - 「游戏数据」（属性克制倍率等）不属于这里，统一放在仓库根部 `data/`，
+ *     由前后端共享同一个真相来源，避免两套数值各自漂移。
+ *
+ * 属性配色来源说明：
+ *   以下 18 个属性代表色采用社区通用配色表（与 Bulbapedia、Pokémon Showdown 客户端一致）。
+ *   它是「配色参考」，不是官方美术素材；本项目为个人非商业用途。
+ *   详见 docs/DATA_SOURCES.md。
+ *
+ * 前景色（-fg）选择依据：按背景色相对亮度择取深/浅前景，保证正文级对比度（≥ 4.5:1）。
+ */
+
+:root {
+  /* ---------- 18 属性配色 ---------- */
+  --type-normal: #a8a77a;
+  --type-fire: #ee8130;
+  --type-water: #6390f0;
+  --type-electric: #f7d02c;
+  --type-grass: #7ac74c;
+  --type-ice: #96d9d6;
+  --type-fighting: #c22e28;
+  --type-poison: #a33ea1;
+  --type-ground: #e2bf65;
+  --type-flying: #a98ff3;
+  --type-psychic: #f95587;
+  --type-bug: #a6b91a;
+  --type-rock: #b6a136;
+  --type-ghost: #735797;
+  --type-dragon: #6f35fc;
+  --type-dark: #705746;
+  --type-steel: #b7b7ce;
+  --type-fairy: #d685ad;
+
+  /* 属性色上的可读前景色 */
+  --type-normal-fg: #16160d;
+  --type-fire-fg: #1c1006;
+  --type-water-fg: #071127;
+  --type-electric-fg: #1d1700;
+  --type-grass-fg: #0d1c06;
+  --type-ice-fg: #0a1e1d;
+  --type-fighting-fg: #ffffff;
+  --type-poison-fg: #ffffff;
+  --type-ground-fg: #1e1806;
+  --type-flying-fg: #150c2e;
+  --type-psychic-fg: #2b0512;
+  --type-bug-fg: #161a02;
+  --type-rock-fg: #1b1604;
+  --type-ghost-fg: #ffffff;
+  --type-dragon-fg: #ffffff;
+  --type-dark-fg: #ffffff;
+  --type-steel-fg: #16161d;
+  --type-fairy-fg: #2b0d1b;
+
+/* ---------- 语义状态色 ----------
+     --success/--warning/--info 以「文字色」为主要用途，因此浅色模式下取较低明度，
+     保证在浅色卡片上的对比度；-foreground 用于实心填充时的反白文字。 */
+  --success: oklch(0.55 0.14 152);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.58 0.14 70);
+  --warning-foreground: oklch(0.99 0 0);
+  --info: oklch(0.55 0.15 250);
+  --info-foreground: oklch(0.99 0 0);
+}
+
+.dark {
+  /* 深色背景下提高明度，保证在暗色卡片上依然清晰 */
+  --success: oklch(0.78 0.14 152);
+  --success-foreground: oklch(0.16 0.02 152);
+  --warning: oklch(0.82 0.14 78);
+  --warning-foreground: oklch(0.18 0.03 78);
+  --info: oklch(0.78 0.13 250);
+  --info-foreground: oklch(0.16 0.02 250);
+}
+
+.dark {
+  /* 深色背景下略微调整明度，保证状态色在暗色卡片上依然清晰 */
+  --success: oklch(0.7 0.13 152);
+  --success-foreground: oklch(0.16 0.02 152);
+  --warning: oklch(0.8 0.14 80);
+  --warning-foreground: oklch(0.18 0.03 80);
+  --info: oklch(0.7 0.13 250);
+  --info-foreground: oklch(0.16 0.02 250);
+}
+
+/**
+ * 映射为 Tailwind 工具类，例如：
+ *   bg-type-fire / text-type-fire / border-type-fire
+ *   bg-type-fire-fg / text-type-fire-fg
+ *   text-warning / bg-warning
+ */
+@theme inline {
+  --color-type-normal: var(--type-normal);
+  --color-type-fire: var(--type-fire);
+  --color-type-water: var(--type-water);
+  --color-type-electric: var(--type-electric);
+  --color-type-grass: var(--type-grass);
+  --color-type-ice: var(--type-ice);
+  --color-type-fighting: var(--type-fighting);
+  --color-type-poison: var(--type-poison);
+  --color-type-ground: var(--type-ground);
+  --color-type-flying: var(--type-flying);
+  --color-type-psychic: var(--type-psychic);
+  --color-type-bug: var(--type-bug);
+  --color-type-rock: var(--type-rock);
+  --color-type-ghost: var(--type-ghost);
+  --color-type-dragon: var(--type-dragon);
+  --color-type-dark: var(--type-dark);
+  --color-type-steel: var(--type-steel);
+  --color-type-fairy: var(--type-fairy);
+
+  --color-type-normal-fg: var(--type-normal-fg);
+  --color-type-fire-fg: var(--type-fire-fg);
+  --color-type-water-fg: var(--type-water-fg);
+  --color-type-electric-fg: var(--type-electric-fg);
+  --color-type-grass-fg: var(--type-grass-fg);
+  --color-type-ice-fg: var(--type-ice-fg);
+  --color-type-fighting-fg: var(--type-fighting-fg);
+  --color-type-poison-fg: var(--type-poison-fg);
+  --color-type-ground-fg: var(--type-ground-fg);
+  --color-type-flying-fg: var(--type-flying-fg);
+  --color-type-psychic-fg: var(--type-psychic-fg);
+  --color-type-bug-fg: var(--type-bug-fg);
+  --color-type-rock-fg: var(--type-rock-fg);
+  --color-type-ghost-fg: var(--type-ghost-fg);
+  --color-type-dragon-fg: var(--type-dragon-fg);
+  --color-type-dark-fg: var(--type-dark-fg);
+  --color-type-steel-fg: var(--type-steel-fg);
+  --color-type-fairy-fg: var(--type-fairy-fg);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+}

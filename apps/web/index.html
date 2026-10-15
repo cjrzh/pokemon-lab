@@ -1,10 +1,32 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f5f5f4" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16171d" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="Pokémon Lab · 宝可梦研究所 — 图鉴检索、属性克制计算、个人收藏与笔记、大师考试的本地优先个人工具站。"
+    />
+    <title>Pokémon Lab · 宝可梦研究所</title>
+    <script>
+      // 在 CSS 加载前决定主题，避免深色模式下首屏闪白。
+      // 与 src/app/theme.ts 中的 STORAGE_KEY 保持一致。
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('pokemon-lab:theme')
+          var theme = stored === 'light' || stored === 'dark' ? stored : 'system'
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          if (theme === 'dark' || (theme === 'system' && prefersDark)) {
+            document.documentElement.classList.add('dark')
+          }
+        } catch (error) {
+          // localStorage 不可用（隐私模式等）时静默降级为浅色主题
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

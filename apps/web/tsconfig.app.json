@@ -7,6 +7,13 @@
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
+    "strict": true,
+
+    /* 路径别名：@/* -> src/*（与 vite.config.ts 的 resolve.alias 保持一致）
+       注意：不使用 baseUrl —— 它在 TypeScript 6.0 已废弃；paths 相对本文件解析。 */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",

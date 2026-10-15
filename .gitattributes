@@ -1,0 +1,29 @@
+# 统一行尾：仓库内一律 LF，避免跨 Mac/Windows 产生无意义 diff
+* text=auto eol=lf
+
+# 二进制文件不做行尾转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svgz binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.gz binary
+*.pdf binary
+*.db binary
+*.sqlite3 binary
+
+# Windows 脚本保留 CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 锁文件：合并时不要按行归并，且不在 diff 中展示
+package-lock.json -diff linguist-generated=true
+uv.lock -diff linguist-generated=true
