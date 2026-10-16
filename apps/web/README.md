@@ -19,10 +19,12 @@ npm run lint       # oxlint
 
 ```
 src/
-├── app/            # 应用装配：providers / router / layout / theme / queryClient
+├── app/            # 应用装配：providers / router / layout（AppShell + AdminShell）/ theme / queryClient
 ├── pages/          # 路由级页面：只做装配，不写业务逻辑
-├── features/       # 领域切分（dex / type-matchup / collection / exam / health）
+│   └── admin/      # 后台管理页（同步、编辑）—— 一切写操作集中在这里
+├── features/       # 领域切分（dex / type-chart / admin / health）
 │                   #   engine.ts / session.ts = 纯函数，必须可单测
+│                   #   features/admin 只被 pages/admin 引用，公开页面不 import
 ├── components/
 │   ├── ui/         # shadcn/ui 生成物（不手改结构）
 │   └── common/     # 项目通用组件
@@ -30,6 +32,9 @@ src/
 ├── styles/tokens.css  # 设计令牌：18 属性色、语义状态色
 └── test/setup.ts   # Vitest 环境配置
 ```
+
+编辑/浏览分离：公开站点（AppShell 内的页面）只读，不引用任何 admin 模块；
+后台（AdminShell，`/admin/*`）承担同步触发与内容编辑。
 
 ## 设计系统
 

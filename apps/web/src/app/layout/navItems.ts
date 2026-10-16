@@ -30,7 +30,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: '图鉴',
     description: '检索宝可梦并查看属性、种族值与进化信息',
     icon: BookOpen,
-    phase: 'P2',
+    phase: 'P0',
   },
   {
     to: '/type-calc',

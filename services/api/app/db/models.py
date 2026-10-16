@@ -1,7 +1,7 @@
 """ORM 模型。
 
 P0 只有元数据表；P1 加入 PokéAPI 落盘缓存与世代/规则版本参考数据；
-图鉴、收藏、笔记、考试等表在 P2–P5 逐步加入。
+P2 加入图鉴表与后台操作日志；收藏、笔记、考试等表在 P4–P5 逐步加入。
 每张涉及竞技规则的表都必须带 `generation_id` / `ruleset_id` 维度 —— 见 docs/ARCHITECTURE.md。
 """
 
@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
 #: 当前数据库结构代次。正式引入迁移工具前，用它判断本地库是否落后于代码。
-SCHEMA_VERSION = "0002_p1_type_core"
+SCHEMA_VERSION = "0003_p2_dex_admin"
 
 
 class SchemaMeta(Base):
@@ -83,3 +83,66 @@ class Ruleset(Base):
 
     def __repr__(self) -> str:  # pragma: no cover - 仅用于调试输出
         return f"Ruleset(id={self.id!r}, label={self.label!r})"
+
+
+class Pokemon(Base):
+    """图鉴条目（P2）。数据主体来自 PokéAPI 同步；支持后台手动编辑与新增。
+
+    结构原则：
+      - `types_json` / `stats_json` / `abilities_json` / `evolution_json` 存 JSON 文本，
+        图鉴展示结构相对稳定，比拆成多张表更符合 MVP 复杂度。
+      - `source` 记录数据来源（pokeapi / manual），`synced_at` 记录最近同步时间；
+        手动编辑过的记录 `source=manual`，再同步时不会被覆盖（同步脚本按该标记跳过）。
+      - `is_demo` 为 True 的记录是演示数据，接口与前端都会显式标记。
+    """
+
+    __tablename__ = "pokemon"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    dex_number: Mapped[int] = mapped_column(Integer, unique=True, nullable=False, index=True)
+    name_en: Mapped[str] = mapped_column(String(64), nullable=False)
+    name_zh: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    types_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    stats_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    abilities_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    evolution_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    generation_introduced: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height_dm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    weight_hg: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    #: 数据来源：pokeapi（同步）/ manual（后台手动编辑或新增）
+    source: Mapped[str] = mapped_column(String(16), nullable=False, default="pokeapi")
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    synced_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover - 仅用于调试输出
+        return f"Pokemon(id={self.id!r}, dex_number={self.dex_number!r}, name_en={self.name_en!r})"
+
+
+class AdminOpLog(Base):
+    """后台操作日志（P2）：谁在什么时候对图鉴做了什么。
+
+    MVP 不做账号体系，`operator` 目前固定为 "admin"（本地单人使用）。
+    引入认证后该字段记录真实用户。
+    """
+
+    __tablename__ = "admin_op_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    target: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    operator: Mapped[str] = mapped_column(String(64), nullable=False, default="admin")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover - 仅用于调试输出
+        return f"AdminOpLog(id={self.id!r}, action={self.action!r})"

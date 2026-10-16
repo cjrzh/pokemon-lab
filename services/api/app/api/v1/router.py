@@ -8,8 +8,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import health, types
+from app.api.v1 import admin, health, pokemon, types
 
 api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(types.router)
+api_router.include_router(pokemon.router)
+api_router.include_router(admin.router)

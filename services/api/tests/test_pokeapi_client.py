@@ -30,10 +30,23 @@ async def db_session(var_dir: Path) -> AsyncIterator[AsyncSession]:
     await dispose_engine()
 
 
+class FetchResultStub:
+    """`fetch_json` 的替身返回值：payload 文本 + 缓存状态。
+
+    供需要 mock 整个 fetch_json 的测试（如 test_dex_api 的同步流程）使用 ——
+    比劫持全局 httpx.AsyncClient 更安全，不波及 ASGI 测试客户端本身。
+    """
+
+    def __init__(self, payload: str, cache_state: str = "miss") -> None:
+        self.payload = payload
+        self.cache_state = cache_state
+
+
 def _patch_transport(monkeypatch: pytest.MonkeyPatch, handler) -> None:
     """把 AsyncClient 的构造替换为带 MockTransport 的版本。
 
-    pokeapi.py 内部每次请求新建 AsyncClient，因此这里 patch 其构造入口。
+    仅适用于「测试自身不创建其他 httpx.AsyncClient」的场景（本文件的 db_session 夹具）。
+    若测试还持有 ASGI 测试客户端，请改用 FetchResultStub + patch fetch_json。
     """
     original_init = httpx.AsyncClient.__init__
 

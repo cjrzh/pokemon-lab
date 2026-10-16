@@ -36,12 +36,21 @@ uv run python scripts/gen_type_chart.py --check
 
 # 世代与规则版本种子（幂等）
 uv run python scripts/seed_generations.py
+
+# 图鉴同步（P2）：预拉取到本地 SQLite，站点离线可用
+uv run python scripts/sync_pokeapi.py              # #1-151（默认关都范围）
+uv run python scripts/sync_pokeapi.py --range 1-25 # 指定区间
+uv run python scripts/sync_pokeapi.py --force      # 覆盖手动编辑过的记录
 ```
 
 - 克制表与测试向量入库：`data/type-chart.json`、`data/type-chart.cases.json`。
   后端 pytest 与前端 Vitest 读**同一份**向量，保证两端计算一致。
-- 接口：`GET /api/v1/types`（完整克制表）、`POST /api/v1/types/evaluate`（倍率计算）、
+- 克制接口：`GET /api/v1/types`（完整克制表）、`POST /api/v1/types/evaluate`（倍率计算）、
   `POST /api/v1/types/reverse`（谁克我）。
+- 图鉴公开接口（只读）：`GET /api/v1/pokemon`（分页/搜索/筛选）、`GET /api/v1/pokemon/{dex}`。
+- 管理接口（写操作，本地使用无认证）：`POST /api/v1/admin/pokemon/sync`、
+  `GET /api/v1/admin/pokemon/sync/status`、`PUT /api/v1/admin/pokemon/{dex}`、
+  `POST /api/v1/admin/pokemon`、`GET /api/v1/admin/ops`。
 
 ## 目录职责
 

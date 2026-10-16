@@ -135,6 +135,9 @@ const CAPABILITY_ACCENT: Record<string, string> = {
   '/exam': 'text-type-psychic bg-type-psychic/10',
 }
 
+/** 已交付的功能（phase === 'P0'）显示「立即使用」，未交付的显示「查看阶段计划」。 */
+const DELIVERED = new Set(['/dex'])
+
 export function HomePage() {
   const capabilities = NAV_ITEMS.filter((item) => item.to !== '/')
 
@@ -204,7 +207,7 @@ export function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                    查看阶段计划
+                    {DELIVERED.has(to) ? '立即使用' : '查看阶段计划'}
                     <ArrowRight
                       aria-hidden="true"
                       className="size-3.5 transition-transform group-hover:translate-x-0.5"
@@ -249,6 +252,13 @@ export function HomePage() {
           </ul>
         </CardContent>
       </Card>
+      {/* ---------- 后台管理入口（站长用；公开站点本身只读） ---------- */}
+      <p className="text-center text-xs text-muted-foreground">
+        <Link to="/admin" className="underline-offset-4 hover:underline">
+          研究所后台
+        </Link>
+        · 数据同步与内容编辑 · 仅本地使用
+      </p>
     </div>
   )
 }

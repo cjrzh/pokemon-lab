@@ -37,8 +37,10 @@ data/（仓库内规范数据，跨端共享唯一真相来源）
 ```
 generations(id, label, region, released_at)
 rulesets(id, label, generation_id, notes)        # 如 gen9-standard
-pokemon(…, generation_introduced, types_json, …) # P2
+pokemon(dex_number, name_en/zh, types_json, stats_json, abilities_json,
+        evolution_json, source, synced_at, is_demo)   # P2；source=pokeapi|manual
 api_cache(cache_key, url, payload, etag, expires_at)  # PokéAPI 落盘缓存（P1）
+admin_op_log(action, target, detail, operator)   # P2；后台写操作审计
 collections / notes / exam_sessions / exam_answers / questions  # P4–P5，均带 owner_key
 schema_meta(key, value)                          # 结构版本记录（已有）
 ```
@@ -47,6 +49,17 @@ schema_meta(key, value)                          # 结构版本记录（已有�
 - **参考数据**（世代、规则、克制表、题库）只有一份规范来源，即 `data/` + 种子脚本。
 - **用户数据**带 `owner_key` 与可选的 `ruleset_id`，未来接账号体系只改一处。
 - **错题本不建表**：由 `exam_answers.is_correct=0` 派生，避免两处数据漂移。
+
+## 3.5 编辑/浏览分离（P2 起）
+
+- 公开站点（`/`、`/dex`…）**只读**：只调用 `GET /api/v1/pokemon` 等查询接口，前端
+  代码不 import 任何 admin 模块 —— 边界在目录结构上可见。
+- 一切写操作集中在 `/admin`（前端）与 `/api/v1/admin/*`（后端）：手动同步触发、
+  字段编辑、手动新增，全部写 `admin_op_log`。
+- 同步与编辑共存规则：`pokemon.source=manual` 的记录默认不被同步覆盖（管理端可显式
+  force）—— 人工修正优先于上游数据。
+- **MVP 安全边界（如实声明）**：admin 接口无认证，仅适用于本地个人部署。若暴露公网，
+  必须先在网关层加认证；这是「本地优先」项目边界的明确决定，不假装有安全。
 
 ## 7. 属性克制表：一份数据、两端共用
 
