@@ -30,6 +30,9 @@ async def test_health_reports_database_ok_and_datasets_present(client: AsyncClie
     assert set(checks) == {"database", "datasets"}
     assert checks["database"]["status"] == "ok"
     assert "SQLite" in checks["database"]["detail"]
+    # P1 起，client 夹具已挂载有效克制表 → datasets 为 ok
+    assert checks["datasets"]["status"] == "ok"
+    assert payload["status"] == "ok"
 
 
 async def test_health_overall_status_is_consistent_with_checks(client: AsyncClient) -> None:
@@ -119,28 +122,37 @@ def test_check_datasets_reports_degraded_when_type_chart_absent(
 
     monkeypatch.setenv("POKEMON_LAB_DATA_DIR", str(data_dir))
     get_settings.cache_clear()
+    from app.services.type_chart_service import reset_type_chart_cache
+
+    reset_type_chart_cache()
     try:
         result = check_datasets()
     finally:
+        reset_type_chart_cache()
         get_settings.cache_clear()
 
     assert result.status == "degraded"
     assert "尚未生成" in result.detail
 
 
-def test_check_datasets_reports_ok_when_type_chart_present(
+def test_check_datasets_reports_degraded_when_type_chart_corrupt(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """文件存在但内容损坏（P1 起会真正解析）→ 如实报 degraded，不假装 ok。"""
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     (data_dir / "type-chart.json").write_text("{}", encoding="utf-8")
 
     monkeypatch.setenv("POKEMON_LAB_DATA_DIR", str(data_dir))
     get_settings.cache_clear()
+    from app.services.type_chart_service import reset_type_chart_cache
+
+    reset_type_chart_cache()
     try:
         result = check_datasets()
     finally:
+        reset_type_chart_cache()
         get_settings.cache_clear()
 
-    assert result.status == "ok"
-    assert "type-chart.json" in result.detail
+    assert result.status == "degraded"
+    assert "无法解析" in result.detail

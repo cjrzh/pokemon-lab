@@ -24,6 +24,25 @@ uv run ruff check .    # 静态检查
 uv run ruff format .   # 格式化（可选）
 ```
 
+## 数据脚本（P1 起）
+
+```bash
+cd services/api
+
+# 生成/更新仓库根 data/type-chart.json（从 PokéAPI 反推，并校验共享测试向量）
+uv run python scripts/gen_type_chart.py
+# 只校验本地数据与上游一致，不写入（CI 用）
+uv run python scripts/gen_type_chart.py --check
+
+# 世代与规则版本种子（幂等）
+uv run python scripts/seed_generations.py
+```
+
+- 克制表与测试向量入库：`data/type-chart.json`、`data/type-chart.cases.json`。
+  后端 pytest 与前端 Vitest 读**同一份**向量，保证两端计算一致。
+- 接口：`GET /api/v1/types`（完整克制表）、`POST /api/v1/types/evaluate`（倍率计算）、
+  `POST /api/v1/types/reverse`（谁克我）。
+
 ## 目录职责
 
 | 目录 | 职责 | 硬性约束 |

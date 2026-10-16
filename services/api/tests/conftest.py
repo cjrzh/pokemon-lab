@@ -3,10 +3,15 @@
 每个用例使用独立的临时 `var` 目录，避免污染开发用的 SQLite 文件。
 `get_settings()` 是 `lru_cache` 单例，所以切换配置后必须清缓存并重建引擎 ——
 这由 `var_dir` 夹具统一负责，其他夹具只需依赖它。
+
+`data_dir` 夹具把仓库根的 `data/type-chart.json` 复制到临时目录，让依赖克制数据的接口
+（/types、selfcheck）可在不依赖固定路径的前提下被测试。克制表单一来源即仓库根 data/，
+测试不另起一份内联副本。
 """
 
 from __future__ import annotations
 
+import shutil
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -17,6 +22,9 @@ from httpx import ASGITransport, AsyncClient
 from app.core.config import get_settings
 from app.db.engine import dispose_engine, init_db
 from app.main import create_app
+
+#: 仓库根的规范数据目录（测试从这里复制克制表，保证单一真相来源）。
+_REPO_DATA_DIR = Path(__file__).resolve().parents[3] / "data"
 
 
 @pytest_asyncio.fixture
@@ -35,13 +43,44 @@ async def var_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
 
 
 @pytest_asyncio.fixture
-async def client(var_dir: Path) -> AsyncIterator[AsyncClient]:
+async def data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[Path]:
+    """指向临时目录并复制仓库根的克制表；重置 type_chart 单例缓存。"""
+    from app.services.type_chart_service import reset_type_chart_cache
+
+    target = tmp_path / "data"
+    target.mkdir(parents=True, exist_ok=True)
+
+    source = _REPO_DATA_DIR / "type-chart.json"
+    if not source.exists():
+        pytest.fail(
+            f"仓库缺少规范克制表 {source}：请先运行 `uv run python scripts/gen_type_chart.py` 生成"
+        )
+    shutil.copy(source, target / "type-chart.json")
+
+    # 测试向量也一并复制，便于需要它的用例
+    cases = _REPO_DATA_DIR / "type-chart.cases.json"
+    if cases.exists():
+        shutil.copy(cases, target / "type-chart.cases.json")
+
+    monkeypatch.setenv("POKEMON_LAB_DATA_DIR", str(target))
+
+    get_settings.cache_clear()
+    reset_type_chart_cache()
+
+    yield target
+
+    reset_type_chart_cache()
+    get_settings.cache_clear()
+
+
+@pytest_asyncio.fixture
+async def client(var_dir: Path, data_dir: Path) -> AsyncIterator[AsyncClient]:
     """进程内 HTTP 客户端。
 
     使用 ASGITransport 直接调用应用，不占用端口；
     但 ASGITransport 不会触发 lifespan，因此这里显式调用 `init_db()`。
+    同时挂载了克制表，/types 系列接口可正常工作。
     """
-    _ = var_dir
     app = create_app()
     await init_db()
 

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "属性克制测试向量 · Gen 6+",
+  "description": "前后端共用的唯一测试向量：后端 pytest 与前端 Vitest 读取同一文件，保证两端克制计算结果一致。向量由人手核对，生成脚本 gen_type_chart.py 会逐一校验它们与 PokéAPI 数据一致，避免「两端一致地错」。reverse 用例的 expected 必须恰好等于全部非 1 倍进攻属性（多列少列都算错）。",
+  "cases": [
+    { "id": "single-x2", "kind": "evaluate", "attack": "fire", "defense": ["grass"], "expected": 2 },
+    { "id": "single-half", "kind": "evaluate", "attack": "fire", "defense": ["water"], "expected": 0.5 },
+    { "id": "single-neutral", "kind": "evaluate", "attack": "normal", "defense": ["grass"], "expected": 1 },
+    { "id": "single-immune", "kind": "evaluate", "attack": "normal", "defense": ["ghost"], "expected": 0 },
+
+    { "id": "dual-4x", "kind": "evaluate", "attack": "fire", "defense": ["grass", "ice"], "expected": 4 },
+    { "id": "dual-cancel", "kind": "evaluate", "attack": "fire", "defense": ["water", "grass"], "expected": 1 },
+    { "id": "dual-quarter", "kind": "evaluate", "attack": "fire", "defense": ["water", "dragon"], "expected": 0.25 },
+    { "id": "dual-immune-zero", "kind": "evaluate", "attack": "fighting", "defense": ["ghost", "normal"], "expected": 0 },
+    { "id": "dual-double-immune-zero", "kind": "evaluate", "attack": "ground", "defense": ["flying", "flying"], "expected": 0 },
+
+    { "id": "self-dragon", "kind": "evaluate", "attack": "dragon", "defense": ["dragon"], "expected": 2 },
+    { "id": "self-steel", "kind": "evaluate", "attack": "steel", "defense": ["steel"], "expected": 0.5 },
+    { "id": "fairy-vs-dragon", "kind": "evaluate", "attack": "fairy", "defense": ["dragon"], "expected": 2 },
+    { "id": "dark-vs-ghost", "kind": "evaluate", "attack": "dark", "defense": ["ghost"], "expected": 2 },
+    { "id": "poison-vs-steel-immune", "kind": "evaluate", "attack": "poison", "defense": ["steel"], "expected": 0 },
+
+    { "id": "reverse-fire", "kind": "reverse", "defense": ["fire"], "expected": { "water": 2, "ground": 2, "rock": 2, "fire": 0.5, "grass": 0.5, "ice": 0.5, "steel": 0.5, "bug": 0.5, "fairy": 0.5 } },
+    { "id": "reverse-water-ground", "kind": "reverse", "defense": ["water", "ground"], "expected": { "grass": 4, "electric": 0, "fire": 0.5, "poison": 0.5, "rock": 0.5, "steel": 0.5 } },
+    { "id": "reverse-dragon-fairy", "kind": "reverse", "defense": ["dragon", "fairy"], "expected": { "ice": 2, "poison": 2, "steel": 2, "fairy": 2, "fire": 0.5, "water": 0.5, "electric": 0.5, "grass": 0.5, "fighting": 0.5, "bug": 0.5, "dark": 0.5, "dragon": 0 } }
+  ]
+}
