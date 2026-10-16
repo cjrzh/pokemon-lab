@@ -9,11 +9,11 @@ FastAPI + Pydantic + SQLAlchemy(async) + SQLite。仅实现产品 API：图鉴�
 cd services/api
 
 uv sync                                  # 安装依赖（含开发依赖）
-uv run uvicorn app.main:app --reload     # 启动开发服务，默认 http://127.0.0.1:8000
+uv run uvicorn app.main:app --reload --port 18000   # 启动开发服务，http://127.0.0.1:18000
 ```
 
-- 接口文档：<http://127.0.0.1:8000/docs>
-- 健康检查：<http://127.0.0.1:8000/api/v1/health>
+- 接口文档：<http://127.0.0.1:18000/docs>
+- 健康检查：<http://127.0.0.1:18000/api/v1/health>
 
 ## 测试与静态检查
 

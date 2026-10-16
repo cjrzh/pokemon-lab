@@ -21,11 +21,11 @@
 ```bash
 cd services/api
 uv sync                          # 创建虚拟环境并安装依赖
-uv run uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 18000
 ```
 
-- 接口文档：<http://127.0.0.1:8000/docs>
-- 健康检查：<http://127.0.0.1:8000/api/v1/health>
+- 接口文档：<http://127.0.0.1:18000/docs>
+- 健康检查：<http://127.0.0.1:18000/api/v1/health>
 
 ### 2. 前端
 

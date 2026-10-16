@@ -8,7 +8,7 @@ import { defineConfig } from 'vitest/config'
  * 后端地址。开发环境下前端统一请求同源 `/api/*`，由 Vite 代理转发到 FastAPI，
  * 这样浏览器侧不存在跨域问题，也无需在前端硬编码绝对地址。
  */
-const apiTarget = process.env.POKEMON_LAB_API_TARGET ?? 'http://127.0.0.1:8000'
+const apiTarget = process.env.POKEMON_LAB_API_TARGET ?? 'http://127.0.0.1:18000'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

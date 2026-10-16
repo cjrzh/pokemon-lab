@@ -6,7 +6,7 @@ React 19 + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui + TanStack Query + Re
 
 ```bash
 npm install        # 安装依赖
-npm run dev        # 启动开发服务器（127.0.0.1:5173，/api 代理到 http://127.0.0.1:8000）
+npm run dev        # 启动开发服务器（127.0.0.1:5173，/api 代理到 http://127.0.0.1:18000）
 npm run build      # tsc -b && vite build 生产构建
 npm run preview    # 预览生产构建
 npm run test       # Vitest 单元测试

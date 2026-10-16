@@ -1,7 +1,7 @@
 """FastAPI 应用入口。
 
 启动方式（在 services/api 目录下）：
-    uv run uvicorn app.main:app --reload --port 8000
+    uv run uvicorn app.main:app --reload --port 18000
 """
 
 from __future__ import annotations
