@@ -16,6 +16,9 @@ export interface SyncStatus {
   default_range: { start: number; end: number }
   expected_in_range: number
   coverage: number | null
+  artwork_cached: number | null
+  moves_covered: number | null
+  per_generation: Record<string, number>
 }
 
 export interface SyncResult {
@@ -41,6 +44,9 @@ export interface PokemonEditPayload {
   stats?: Record<string, number>
   abilities?: { name: string; zh: string | null; is_hidden: boolean }[]
   evolution?: Record<string, unknown>
+  moves?: Record<string, unknown>
+  genus_zh?: string
+  flavor_zh?: string
   generation_introduced?: number
   height_dm?: number
   weight_hg?: number
@@ -52,7 +58,7 @@ export function fetchSyncStatus(signal?: AbortSignal): Promise<SyncStatus> {
 }
 
 export function triggerSync(
-  payload: { start: number; end: number; force?: boolean },
+  payload: { start: number; end: number; force?: boolean; skip_existing?: boolean },
   signal?: AbortSignal,
 ): Promise<SyncResult> {
   return apiRequest<SyncResult>('/admin/pokemon/sync', { method: 'POST', body: payload, signal })
@@ -75,4 +81,46 @@ export function createPokemon(
   signal?: AbortSignal,
 ): Promise<unknown> {
   return apiRequest('/admin/pokemon', { method: 'POST', body: payload, signal })
+}
+
+// ---------------------------------------------------------------------------
+// 双打统计数据（导入 / 现状）
+// ---------------------------------------------------------------------------
+
+export interface DoublesFormatStatus {
+  key: string
+  label: string
+  month: string
+  cutoff: number
+  points_kind: 'ev' | 'stat_points'
+  battles: number
+  entries: number
+  dex_covered: number
+  imported_at: string | null
+}
+
+export interface DoublesStatus {
+  format_count: number
+  entries: number
+  formats: DoublesFormatStatus[]
+}
+
+export interface DoublesImportResult {
+  summary: string
+  formats: number
+  entries: number
+  per_format: Record<string, number>
+  unresolved: string[]
+}
+
+export function fetchDoublesStatus(signal?: AbortSignal): Promise<DoublesStatus> {
+  return apiRequest<DoublesStatus>('/admin/doubles/status', { signal })
+}
+
+export function importDoubles(signal?: AbortSignal): Promise<DoublesImportResult> {
+  return apiRequest<DoublesImportResult>('/admin/doubles/sync', {
+    method: 'POST',
+    signal,
+    timeoutMs: 30_000,
+  })
 }

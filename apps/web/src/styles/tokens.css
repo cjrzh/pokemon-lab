@@ -55,6 +55,17 @@
   --type-steel-fg: #16161d;
   --type-fairy-fg: #2b0d1b;
 
+  /* ---------- 种族值分项配色 ----------
+     每个种族值项目固定一种颜色（与数值大小无关）：
+     HP 红 / 攻击 橙 / 防御 黄 / 特攻 蓝 / 特防 绿 / 速度 粉。
+     色相参考社区常见图鉴站点的习惯，明度按本文档背景调过以保持可读性。 */
+  --stat-hp: #e5484d;
+  --stat-attack: #e8710a;
+  --stat-defense: #c79a12;
+  --stat-special-attack: #3b82f6;
+  --stat-special-defense: #3da35d;
+  --stat-speed: #d6409f;
+
 /* ---------- 语义状态色 ----------
      --success/--warning/--info 以「文字色」为主要用途，因此浅色模式下取较低明度，
      保证在浅色卡片上的对比度；-foreground 用于实心填充时的反白文字。 */
@@ -68,6 +79,13 @@
 
 .dark {
   /* 深色背景下提高明度，保证状态色在暗色卡片上依然清晰 */
+  --stat-hp: #ff6b6b;
+  --stat-attack: #ff9f43;
+  --stat-defense: #f0c419;
+  --stat-special-attack: #6aa8ff;
+  --stat-special-defense: #5fd08a;
+  --stat-speed: #ff7ac8;
+
   --success: oklch(0.78 0.14 152);
   --success-foreground: oklch(0.16 0.02 152);
   --warning: oklch(0.82 0.14 78);
@@ -120,6 +138,13 @@
   --color-type-dark-fg: var(--type-dark-fg);
   --color-type-steel-fg: var(--type-steel-fg);
   --color-type-fairy-fg: var(--type-fairy-fg);
+
+  --color-stat-hp: var(--stat-hp);
+  --color-stat-attack: var(--stat-attack);
+  --color-stat-defense: var(--stat-defense);
+  --color-stat-special-attack: var(--stat-special-attack);
+  --color-stat-special-defense: var(--stat-special-defense);
+  --color-stat-speed: var(--stat-speed);
 
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);

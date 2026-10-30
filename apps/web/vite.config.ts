@@ -25,6 +25,11 @@ export default defineConfig({
         target: apiTarget,
         changeOrigin: true,
       },
+      // 图鉴立绘由后端静态托管（本地缓存，离线可用），开发态同样走同源代理。
+      '/media': {
+        target: apiTarget,
+        changeOrigin: true,
+      },
     },
   },
   build: {

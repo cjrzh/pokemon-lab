@@ -1,0 +1,509 @@
+{
+  "schema_version": 1,
+  "source": "llm-rating",
+  "source_label": "LLM 预评",
+  "rated_at": "2026-10-28",
+  "criteria": "以当前对战环境（Gen 9）为基准，综合特性的触发条件、收益上限、适用面与对战影响力。S 级指「能显著改变对局强度或构筑方式」的特性；普通特性指收益有限、依赖特定条件或主要服务于单机玩法。人工可用后台接口覆盖。",
+  "tiers": {
+    "drizzle": {
+      "tier": "s",
+      "note": "登场即降下永久雨天，直接强化水属性招式并联动悠游自如等特性，是天气体系的核心。"
+    },
+    "drought": {
+      "tier": "s",
+      "note": "登场即放晴，强化火属性招式并联动叶绿素等特性，是晴天体系的核心。"
+    },
+    "sand-stream": {
+      "tier": "s",
+      "note": "登场即掀起沙暴，配合挖沙、沙隐等特性构筑沙暴体系，并削弱对手。"
+    },
+    "snow-warning": {
+      "tier": "s",
+      "note": "登场即降雪，配合雪隐、拨雪等特性构筑雪天体系。"
+    },
+    "electric-surge": {
+      "tier": "s",
+      "note": "登场即展开电气场地，强化电属性招式并阻止睡眠，同时联动夸克充能。"
+    },
+    "grassy-surge": {
+      "tier": "s",
+      "note": "登场即展开青草场地，回复体力、强化草属性招式并削减地震伤害。"
+    },
+    "psychic-surge": {
+      "tier": "s",
+      "note": "登场即展开精神场地，强化超能力招式并使先制招式失效，压制力极强。"
+    },
+    "misty-surge": {
+      "tier": "s",
+      "note": "登场即展开薄雾场地，免疫状态异常并减半龙属性伤害。"
+    },
+    "intimidate": {
+      "tier": "s",
+      "note": "登场即降低对手攻击，几乎无条件提升自身生存能力，是使用率最高的特性之一。"
+    },
+    "levitate": {
+      "tier": "s",
+      "note": "完全免疫地面属性招式，配合毒/电等属性可直接消除最大弱点。"
+    },
+    "sturdy": {
+      "tier": "s",
+      "note": "满血时不会被一击打倒，极大提高容错与先制反击能力（对某些策略是硬性要求）。"
+    },
+    "multiscale": {
+      "tier": "s",
+      "note": "满血时受到伤害减半，显著提升开场生存能力，常与回复战术配合。"
+    },
+    "regenerator": {
+      "tier": "s",
+      "note": "换下场时回复三分之一体力，让反复切换变得可持续，是轮转体系的关键。"
+    },
+    "speed-boost": {
+      "tier": "s",
+      "note": "每回合提升速度，越战越快，是强化推队型宝可梦的核心引擎。"
+    },
+    "moxie": {
+      "tier": "s",
+      "note": "击倒对手后提升攻击，滚雪球能力极强，清场能力显著。"
+    },
+    "beast-boost": {
+      "tier": "s",
+      "note": "击倒对手后提升最高的能力，滚雪球更强，是异兽体系的核心。"
+    },
+    "huge-power": {
+      "tier": "s",
+      "note": "攻击力翻倍，直接让物理输出达到顶级水平。"
+    },
+    "pure-power": {
+      "tier": "s",
+      "note": "攻击力翻倍，直接让物理输出达到顶级水平。"
+    },
+    "sheer-force": {
+      "tier": "s",
+      "note": "舍弃追加效果换取招式威力提升，覆盖面广且几乎无代价。"
+    },
+    "hustle": {
+      "tier": "s",
+      "note": "提高攻击但降低命中，在多输出体系里是重要的上限加成。"
+    },
+    "adaptability": {
+      "tier": "s",
+      "note": "本系招式威力加成从 1.5 倍提升到 2 倍，本系输出质变。"
+    },
+    "protean": {
+      "tier": "s",
+      "note": "出场后每次出招都变成该招式属性并获得本系加成，战术弹性极高。"
+    },
+    "contrary": {
+      "tier": "s",
+      "note": "能力变化反转，把降低能力的效果变成强化，是极难对付的强化手段。"
+    },
+    "magic-bounce": {
+      "tier": "s",
+      "note": "反弹所有变化招式，能无效化大量控制与削弱手段。"
+    },
+    "prankster": {
+      "tier": "s",
+      "note": "变化招式获得先制，让干扰、回复、布置场地等战术具有压制力。"
+    },
+    "unaware": {
+      "tier": "s",
+      "note": "无视对手的能力变化，直接废掉强化战术，是防守端的顶级特性。"
+    },
+    "poison-heal": {
+      "tier": "s",
+      "note": "中毒状态下每回合回复体力，配合剧毒珠几乎等于常驻回复。"
+    },
+    "water-absorb": {
+      "tier": "s",
+      "note": "免疫水属性招式并回复体力，同时消除水属性弱点。"
+    },
+    "volt-absorb": {
+      "tier": "s",
+      "note": "免疫电属性招式并回复体力，同时消除电属性弱点。"
+    },
+    "flash-fire": {
+      "tier": "s",
+      "note": "免疫火属性招式并强化自身火属性招式，消除火属性弱点。"
+    },
+    "storm-drain": {
+      "tier": "s",
+      "note": "免疫水属性招式并提升特攻，攻防一体。"
+    },
+    "lightning-rod": {
+      "tier": "s",
+      "note": "免疫电属性招式并提升特攻，还可吸引对手的电属性招式。"
+    },
+    "sap-sipper": {
+      "tier": "s",
+      "note": "免疫草属性招式并提升攻击，攻防一体。"
+    },
+    "motor-drive": {
+      "tier": "s",
+      "note": "免疫电属性招式并提升速度，攻防一体。"
+    },
+    "thick-fat": {
+      "tier": "s",
+      "note": "火、冰属性伤害减半，直接修补两个常见弱点。"
+    },
+    "heatproof": {
+      "tier": "s",
+      "note": "火属性伤害减半，配合钢/虫属性显著改善抗性。"
+    },
+    "dry-skin": {
+      "tier": "s",
+      "note": "免疫水属性并回复，同时减轻火属性伤害，双向收益。"
+    },
+    "triage": {
+      "tier": "s",
+      "note": "回复类招式获得先制，让残血回复与续航更具压制力。"
+    },
+    "gale-wings": {
+      "tier": "s",
+      "note": "满血时飞行属性招式获得先制，先手压制能力极强。"
+    },
+    "tough-claws": {
+      "tier": "s",
+      "note": "接触类招式威力提升，覆盖面广、几乎无代价。"
+    },
+    "technician": {
+      "tier": "s",
+      "note": "威力较低但覆盖面广的招式获得提升，能显著提高输出密度。"
+    },
+    "sniper": {
+      "tier": "s",
+      "note": "击中要害时伤害进一步提升，配合易中要害战术收益极高。"
+    },
+    "super-luck": {
+      "tier": "s",
+      "note": "提高击中要害的概率，稳定提升输出期望。"
+    },
+    "iron-fist": {
+      "tier": "s",
+      "note": "拳类招式威力提升，覆盖大量优质招式。"
+    },
+    "strong-jaw": {
+      "tier": "s",
+      "note": "啃咬类招式威力提升，覆盖大量优质招式。"
+    },
+    "punk-rock": {
+      "tier": "s",
+      "note": "声音类招式威力提升，覆盖范围广。"
+    },
+    "steely-spirit": {
+      "tier": "s",
+      "note": "提升自身与同伴的钢属性招式威力，团队收益明显。"
+    },
+    "solar-power": {
+      "tier": "s",
+      "note": "晴天时特攻提升，代价是每回合损失体力，是晴天队的主要输出特性。"
+    },
+    "unburden": {
+      "tier": "s",
+      "note": "失去道具后速度翻倍，配合消耗道具可形成高速压制。"
+    },
+    "vital-spirit": {
+      "tier": "s",
+      "note": "不会睡眠，直接封锁大量控制手段（尤其针对催眠战术）。"
+    },
+    "immunity": {
+      "tier": "s",
+      "note": "不会中毒，免疫剧毒等持久伤害。"
+    },
+    "limber": {
+      "tier": "s",
+      "note": "不会麻痹，免疫速度削减与行动封锁。"
+    },
+    "magma-armor": {
+      "tier": "s",
+      "note": "不会冰冻，免疫冰冻带来的行动封锁。"
+    },
+    "water-veil": {
+      "tier": "s",
+      "note": "不会灼伤，免疫灼伤的输出削减。"
+    },
+    "shield-dust": {
+      "tier": "s",
+      "note": "不会被追加效果命中，显著降低随机性伤害。"
+    },
+    "serene-grace": {
+      "tier": "s",
+      "note": "招式的追加效果发动率翻倍，控制与输出上限大幅提高。"
+    },
+    "supreme-overlord": {
+      "tier": "s",
+      "note": "队伍每有一名成员倒下就提升攻击与特攻，残局滚雪球能力极强。"
+    },
+    "orichalcum-pulse": {
+      "tier": "s",
+      "note": "登场即放晴并提升攻击，兼具天气体系与输出强化。"
+    },
+    "hadron-engine": {
+      "tier": "s",
+      "note": "登场即展开电气场地并提升特攻，兼具场地体系与输出强化。"
+    },
+    "good-as-gold": {
+      "tier": "s",
+      "note": "免疫所有变化招式，直接封锁对手的干扰与控制。"
+    },
+    "purifying-salt": {
+      "tier": "s",
+      "note": "免疫状态异常且幽灵属性伤害减半，攻防两端都很强。"
+    },
+    "well-baked-body": {
+      "tier": "s",
+      "note": "免疫火属性招式并大幅提升防御，直接消除弱点并强化生存。"
+    },
+    "earth-eater": {
+      "tier": "s",
+      "note": "免疫地面属性招式并回复体力，直接消除地面弱点。"
+    },
+    "wind-rider": {
+      "tier": "s",
+      "note": "免疫风类招式并提升攻击，攻防一体。"
+    },
+    "sharpness": {
+      "tier": "s",
+      "note": "切割类招式威力提升，覆盖大量优质招式。"
+    },
+    "intrepid-sword": {
+      "tier": "s",
+      "note": "登场时提升攻击，直接获得一次强化。"
+    },
+    "dauntless-shield": {
+      "tier": "s",
+      "note": "登场时提升防御，直接获得一次强化。"
+    },
+    "shadow-shield": {
+      "tier": "s",
+      "note": "满血时受到伤害减半，位移到防守端的顶级特性。"
+    },
+    "disguise": {
+      "tier": "s",
+      "note": "挡下一次攻击且不受伤害，保命能力极强。"
+    },
+    "ice-scales": {
+      "tier": "s",
+      "note": "特防提升 50%，特殊端防御质变。"
+    },
+    "fur-coat": {
+      "tier": "s",
+      "note": "防御提升一倍，物理端防御质变。"
+    },
+    "marvel-scale": {
+      "tier": "s",
+      "note": "处于异常状态时防御提升 50%，配合剧毒珠收益稳定。"
+    },
+    "competitive": {
+      "tier": "s",
+      "note": "能力被降低时特攻大幅提升，惩罚对手的削弱手段。"
+    },
+    "defiant": {
+      "tier": "s",
+      "note": "能力被降低时攻击大幅提升，惩罚对手的削弱手段。"
+    },
+    "moody": {
+      "tier": "s",
+      "note": "每回合随机提升一项能力、降低另一项，长期收益极高。"
+    },
+    "wonder-guard": {
+      "tier": "s",
+      "note": "只受到效果绝佳招式的伤害，若非对手有克制手段几乎无法击破。"
+    },
+    "run-away": {
+      "tier": "normal",
+      "note": "除少数情况外几乎不影响对战，仅用于逃跑。"
+    },
+    "illuminate": {
+      "tier": "normal",
+      "note": "提高野生宝可梦出现率，对战中没有实际效果。"
+    },
+    "honey-gather": {
+      "tier": "normal",
+      "note": "战斗结束后可能拾得蜂蜜，对战中没有实际效果。"
+    },
+    "pickup": {
+      "tier": "normal",
+      "note": "战斗结束后可能拾得道具，对战中影响很小。"
+    },
+    "gluttony": {
+      "tier": "normal",
+      "note": "在体力较低时更早使用树果，收益依赖道具。"
+    },
+    "rattled": {
+      "tier": "normal",
+      "note": "受到特定属性招式时提升速度，触发条件较窄。"
+    },
+    "libero": {
+      "tier": "s",
+      "note": "出场后每次出招都变成该招式属性并获得本系加成，战术弹性极高。"
+    },
+    "blaze": {
+      "tier": "normal",
+      "note": "体力低时火属性招式威力提升，触发条件偏苛刻，收益中规中矩。"
+    },
+    "torrent": {
+      "tier": "normal",
+      "note": "体力低时水属性招式威力提升，触发条件偏苛刻，收益中规中矩。"
+    },
+    "overgrow": {
+      "tier": "normal",
+      "note": "体力低时草属性招式威力提升，触发条件偏苛刻，收益中规中矩。"
+    },
+    "swarm": {
+      "tier": "normal",
+      "note": "体力低时虫属性招式威力提升，覆盖面窄，收益有限。"
+    },
+    "static": {
+      "tier": "normal",
+      "note": "接触时可能麻痹，依赖对手触发，收益不稳定。"
+    },
+    "flame-body": {
+      "tier": "normal",
+      "note": "接触时可能灼伤，依赖对手触发，收益不稳定。"
+    },
+    "poison-point": {
+      "tier": "normal",
+      "note": "接触时可能中毒，依赖对手触发，收益不稳定。"
+    },
+    "effect-spore": {
+      "tier": "normal",
+      "note": "接触时可能陷入异常状态，依赖对手触发，收益不稳定。"
+    },
+    "sand-veil": {
+      "tier": "normal",
+      "note": "沙暴时闪避率提升，对局中依赖天气且随机性强。"
+    },
+    "snow-cloak": {
+      "tier": "normal",
+      "note": "下雪时闪避率提升，对局中依赖天气且随机性强。"
+    },
+    "tangled-feet": {
+      "tier": "normal",
+      "note": "混乱时闪避率提升，触发条件与收益都比较被动。"
+    },
+    "early-bird": {
+      "tier": "normal",
+      "note": "睡眠时醒得更快，只在特定对局中有价值。"
+    },
+    "insomnia": {
+      "tier": "normal",
+      "note": "不会睡眠，抗性有针对性但覆盖面有限。"
+    },
+    "own-tempo": {
+      "tier": "normal",
+      "note": "不会混乱，免疫手段较窄。"
+    },
+    "oblivious": {
+      "tier": "normal",
+      "note": "不会着迷，免疫手段在 Gen 9 环境中价值有限。"
+    },
+    "scrappy": {
+      "tier": "normal",
+      "note": "可攻击幽灵属性并免疫威吓，针对性强但适用面有限。"
+    },
+    "shed-skin": {
+      "tier": "normal",
+      "note": "每回合可能解除异常状态，收益依赖随机数。"
+    },
+    "bulk-up-bug": {
+      "tier": "normal",
+      "note": "无对战中实际效果。"
+    },
+    "light-metal": {
+      "tier": "normal",
+      "note": "体重减半，只在极少数依赖体重的规则中有意义。"
+    },
+    "heavy-metal": {
+      "tier": "normal",
+      "note": "体重翻倍，只在极少数依赖体重的规则中有意义。"
+    },
+    "klutz": {
+      "tier": "normal",
+      "note": "无法使用携带道具，通常是负面影响。"
+    },
+    "truant": {
+      "tier": "normal",
+      "note": "每隔一回合无法行动，是明显的负面特性。"
+    },
+    "slow-start": {
+      "tier": "normal",
+      "note": "开场数回合内能力减半，是明显的负面特性。"
+    },
+    "defeatist": {
+      "tier": "normal",
+      "note": "体力低于一半时能力减半，是明显的负面特性。"
+    },
+    "stall": {
+      "tier": "normal",
+      "note": "始终最后行动，通常是负面特性。"
+    },
+    "innards-out": {
+      "tier": "normal",
+      "note": "受到攻击时伤害对手，收益被动。"
+    },
+    "cute-charm": {
+      "tier": "normal",
+      "note": "接触时可能让对手着迷，依赖随机数与对手接触。"
+    },
+    "rivalry": {
+      "tier": "normal",
+      "note": "对同性对手增伤、对异性减伤，收益不稳定。"
+    },
+    "unlucky": {
+      "tier": "normal",
+      "note": "对手的击中要害率提升，偏负面。"
+    },
+    "supersweet-syrup": {
+      "tier": "normal",
+      "note": "每场战斗一次的闪避下降，性价比一般。"
+    },
+    "ball-fetch": {
+      "tier": "normal",
+      "note": "只在捕捉后找回精灵球，对战没有效果。"
+    },
+    "mimicry": {
+      "tier": "normal",
+      "note": "随场地改变属性，收益与风险并存且依赖场地。"
+    },
+    "zen-mode": {
+      "tier": "normal",
+      "note": "体力低时改变形态并提升能力，触发条件偏被动。"
+    },
+    "power-construct": {
+      "tier": "normal",
+      "note": "受到强力攻击后改变形态，收益被动。"
+    },
+    "schooling": {
+      "tier": "normal",
+      "note": "体力充足时改变形态，切换条件受限制。"
+    },
+    "shields-down": {
+      "tier": "normal",
+      "note": "体力低时改变形态，属于被动变化。"
+    },
+    "comatose": {
+      "tier": "normal",
+      "note": "始终处于睡眠状态但可以行动，主要价值是免疫异常状态，适用面有限。"
+    },
+    "wimp-out": {
+      "tier": "normal",
+      "note": "体力低时退回队伍，偏防守但仍要放弃行动。"
+    },
+    "emergency-exit": {
+      "tier": "normal",
+      "note": "体力低时退回队伍，偏防守但仍要放弃行动。"
+    },
+    "primordial-sea": {
+      "tier": "normal",
+      "note": "天气方面的强力特性，但只属于特定传说宝可梦，通用性低。"
+    },
+    "desolate-land": {
+      "tier": "normal",
+      "note": "天气方面的强力特性，但只属于特定传说宝可梦，通用性低。"
+    },
+    "delta-stream": {
+      "tier": "normal",
+      "note": "削弱克制伤害的强力特性，但只属于特定传说宝可梦。"
+    }
+  }
+}

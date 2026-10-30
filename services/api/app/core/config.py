@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     var_dir: Path = DEFAULT_VAR_DIR
     #: 规范数据目录（仓库内共享，入库）
     data_dir: Path = DEFAULT_DATA_DIR
+    #: 本地图片缓存目录。默认跟随 var_dir（测试切到临时目录时自动隔离）；
+    #: 需要单独指定时设 POKEMON_LAB_MEDIA_DIR。
+    media_dir: Path | None = None
 
     #: PokéAPI：公开 REST 接口，无需密钥
     pokeapi_base_url: str = "https://pokeapi.co/api/v2"
@@ -61,6 +64,12 @@ class Settings(BaseSettings):
     pokeapi_read_timeout_seconds: float = 10.0
     pokeapi_max_retries: int = 2
     pokeapi_cache_ttl_seconds: int = 7 * 24 * 60 * 60
+
+    #: 官方图鉴立绘（pokemon.com 公开图鉴资源）同步到本地，离线可用
+    artwork_base_url: str = "https://assets.pokemon.com/assets/cms2/img/pokedex/full"
+    artwork_fetch_timeout_seconds: float = 20.0
+    #: 是否在同步时下载立绘。测试默认关闭，避免打真实网络。
+    artwork_sync_enabled: bool = True
 
     @field_validator("var_dir", "data_dir", mode="after")
     @classmethod
@@ -70,6 +79,27 @@ class Settings(BaseSettings):
     @property
     def database_path(self) -> Path:
         return self.var_dir / "pokemon_lab.db"
+
+    @property
+    def resolved_media_dir(self) -> Path:
+        """实际生效的图片目录。未显式配置时跟随 var_dir，避免漏配后写到仓库根。"""
+        path = self.media_dir or (self.var_dir / "media")
+        return path.expanduser().resolve()
+
+    @property
+    def artwork_dir(self) -> Path:
+        """立绘缓存目录：media/artwork/{dex}.png。"""
+        return self.resolved_media_dir / "artwork"
+
+    @property
+    def sprite_dir(self) -> Path:
+        """小图标缓存目录：media/sprites/{dex}.png。"""
+        return self.resolved_media_dir / "sprites"
+
+    @property
+    def item_icon_dir(self) -> Path:
+        """道具图标缓存目录：media/items/{slug}.png（30×30）。"""
+        return self.resolved_media_dir / "items"
 
     @property
     def database_url(self) -> str:

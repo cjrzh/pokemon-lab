@@ -63,6 +63,25 @@ export function reverse(
   return result
 }
 
+/**
+ * 进攻面：单一进攻属性对 18 种防守属性各自的倍率（含 1× 中性项）。
+ *
+ * 与 `reverse` 的区别：`reverse` 回答「谁打我、打得有多疼」，本函数回答
+ * 「我用这个属性的招式打谁有效」。图鉴详情页的「进攻」视图用它。
+ */
+export function attackProfile(attack: string, chart: TypeChart): Map<string, number> {
+  const row = chart[attack]
+  if (row === undefined) {
+    throw new Error(`进攻属性 ${attack} 不在克制表中`)
+  }
+  const result = new Map<string, number>()
+  for (const defense of Object.keys(chart)) {
+    const multiplier = row[defense] ?? NEUTRAL
+    result.set(defense, isZero(multiplier) ? 0 : multiplier)
+  }
+  return result
+}
+
 /** 把倍率转成人可读标签（与后端 format_multiplier 保持一致）。 */
 export function formatMultiplier(multiplier: number): string {
   if (isZero(multiplier)) return '无效（免疫）'

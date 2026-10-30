@@ -7,8 +7,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createPokemon,
   editPokemon,
+  fetchDoublesStatus,
   fetchOpLogs,
   fetchSyncStatus,
+  importDoubles,
   triggerSync,
   type PokemonEditPayload,
 } from './api'
@@ -25,8 +27,12 @@ export function useSyncStatus() {
 export function useTriggerSync() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { start: number; end: number; force?: boolean }) =>
-      triggerSync(payload),
+    mutationFn: (payload: {
+      start: number
+      end: number
+      force?: boolean
+      skip_existing?: boolean
+    }) => triggerSync(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'sync-status'] })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'ops'] })
@@ -62,6 +68,25 @@ export function useCreatePokemon() {
       void queryClient.invalidateQueries({ queryKey: ['pokemon', 'list'] })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'ops'] })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'sync-status'] })
+    },
+  })
+}
+
+export function useDoublesStatus() {
+  return useQuery({
+    queryKey: ['admin', 'doubles-status'],
+    queryFn: ({ signal }) => fetchDoublesStatus(signal),
+  })
+}
+
+export function useImportDoubles() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => importDoubles(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'doubles-status'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'ops'] })
+      void queryClient.invalidateQueries({ queryKey: ['doubles'] })
     },
   })
 }

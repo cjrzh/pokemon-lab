@@ -32,6 +32,8 @@ async def var_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
     """把运行期目录指向临时路径，并重置配置缓存与数据库引擎。"""
     target = tmp_path / "var"
     monkeypatch.setenv("POKEMON_LAB_VAR_DIR", str(target))
+    # 测试不打真实图片网络：同步流程的立绘下载默认关闭。
+    monkeypatch.setenv("POKEMON_LAB_ARTWORK_SYNC_ENABLED", "false")
 
     get_settings.cache_clear()
     await dispose_engine()

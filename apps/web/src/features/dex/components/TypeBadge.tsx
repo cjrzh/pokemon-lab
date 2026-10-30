@@ -1,8 +1,10 @@
 /**
  * 属性徽章：用设计令牌中的 18 属性色渲染。
  *
- * 颜色由 tokens.css 的 --type-* 生成（bg-type-fire 等），前景色按对比度择取
- * （text-type-*-fg），保证徽章内文字可读。
+ * 颜色直接引用 CSS 变量（--type-*），而不是拼接 `bg-type-${type}` 类名 ——
+ * Tailwind 在构建期扫描源码，动态拼接的类名不会被生成，18 个属性里只有
+ * 静态写到的几个能拿到背景色。用 inline style 引用令牌可保证全部属性生效，
+ * 深浅色主题切换也照常工作。
  */
 
 import { ZH as TYPE_ZH } from '@/features/type-chart/data'
@@ -19,10 +21,12 @@ export function TypeBadge({ type, className }: TypeBadgeProps) {
     <span
       className={cn(
         'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap',
-        'bg-type-' + type,
-        'text-type-' + type + '-fg',
         className,
       )}
+      style={{
+        backgroundColor: `var(--type-${type}, var(--muted))`,
+        color: `var(--type-${type}-fg, var(--muted-foreground))`,
+      }}
     >
       {zh}
     </span>

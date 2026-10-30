@@ -4,7 +4,10 @@ import {
   FileText,
   GraduationCap,
   House,
+  Sparkles,
   Star,
+  Swords,
+  Trophy,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -31,6 +34,27 @@ export const NAV_ITEMS: readonly NavItem[] = [
     description: '检索宝可梦并查看属性、种族值与进化信息',
     icon: BookOpen,
     phase: 'P0',
+  },
+  {
+    to: '/abilities',
+    label: '特性',
+    description: '特性说明、S 级评级与拥有者',
+    icon: Sparkles,
+    phase: 'P2',
+  },
+  {
+    to: '/moves',
+    label: '招式',
+    description: '招式数值、说明与「谁会这招」',
+    icon: Swords,
+    phase: 'P2',
+  },
+  {
+    to: '/usage',
+    label: '使用率',
+    description: 'BDSP / 剑盾 / 朱紫 / 冠军双打使用率排行',
+    icon: Trophy,
+    phase: 'P2',
   },
   {
     to: '/type-calc',

@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
@@ -61,6 +62,11 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router, prefix=settings.api_prefix)
+
+    # 本地立绘静态托管：同步脚本把图片下载到 media/artwork，前端通过 /media/... 访问，
+    # 断网也能显示。目录不存在时先建出来，避免 StaticFiles 启动即报错。
+    settings.resolved_media_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/media", StaticFiles(directory=settings.resolved_media_dir), name="media")
 
     @app.get("/", include_in_schema=False)
     async def read_root() -> dict[str, str]:

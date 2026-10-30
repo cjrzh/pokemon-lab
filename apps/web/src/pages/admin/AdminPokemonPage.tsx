@@ -136,6 +136,8 @@ function EditForm({
 }) {
   const [en, setEn] = useState(nameEn)
   const [zh, setZh] = useState(nameZh ?? '')
+  const [genus, setGenus] = useState('')
+  const [flavor, setFlavor] = useState('')
   const [selectedTypes, setSelectedTypes] = useState<string[]>(types)
   const edit = useEditPokemon(dexNumber)
 
@@ -173,6 +175,28 @@ function EditForm({
               value={zh}
               onChange={(event) => setZh(event.target.value)}
               placeholder="留空表示无中文名"
+              className="mt-1.5"
+            />
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label htmlFor={`edit-genus-${dexNumber}`}>分类（如「种子宝可梦」）</Label>
+            <Input
+              id={`edit-genus-${dexNumber}`}
+              value={genus}
+              onChange={(event) => setGenus(event.target.value)}
+              placeholder="留空不修改"
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor={`edit-flavor-${dexNumber}`}>图鉴描述</Label>
+            <Input
+              id={`edit-flavor-${dexNumber}`}
+              value={flavor}
+              onChange={(event) => setFlavor(event.target.value)}
+              placeholder="留空不修改"
               className="mt-1.5"
             />
           </div>
@@ -217,6 +241,8 @@ function EditForm({
                   name_en: en.trim(),
                   name_zh: zh.trim() || undefined,
                   types: selectedTypes,
+                  ...(genus.trim() ? { genus_zh: genus.trim() } : {}),
+                  ...(flavor.trim() ? { flavor_zh: flavor.trim() } : {}),
                 },
                 { onSuccess: onClose },
               )

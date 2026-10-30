@@ -3,7 +3,25 @@
 个人兴趣项目：**图鉴与搜索 · 属性克制计算器 · 个人收藏与笔记 · 大师考试**，
 并预留 LLM 战术教练、Showdown 自动对战、强化学习与安卓端扩展。
 
-> 当前进度：**P2 图鉴与搜索完成**（151 只关都图鉴已同步，可搜索可看详情；后台管理可同步与编辑）。
+> 当前进度：**全国图鉴（Gen 1–9，#1–1025）已完成同步**：官方立绘、分类与图鉴描述、
+> 特性说明、进化条件、**全招式表**（升级 / 学习器 / 蛋招式 / 教学，覆盖 26 个版本组，表头可排序）；
+> 官方中文缺失的 303 条描述由项目自译补齐并在界面标注来源；
+> 特性页收录 284 个特性（77 个 S 级为 LLM 预评，可在页面人工修改），图鉴中 S 级特性标红加粗；
+> 新增**招式页**（797 个招式的数值、说明与「谁会这招」），与图鉴、特性并列；
+> 招式表与宝可梦详情双向链接。
+> 图鉴首页支持卡片 / 列表切换、卡片缩放、列表分页条数（25–200）与**排序**
+> （编号升 / 降序、种族值合计升 / 降序，在属性 / 世代 / 搜索筛选后的子列表内排序）。
+> 新增**使用率排行页**（`/usage`）：BDSP / 剑盾 / 朱紫 / 冠军四个双打格式的榜单，
+> 含名次、出场率、属性、前四项招式与前三个特性 / 道具、主流配点，可搜索与分页，
+> 并链接到图鉴详情。
+> 新增**小图标**：全部 1025 只的 96×96 sprite 缓存到本地，图鉴列表、使用率排行与
+> 特性页的「拥有者」都显示小图标。断网时同样可加载。
+> 新增**道具参考表与图标**：双打统计里出现的 257 个道具从 PokéAPI 同步中文名、
+> 分类与说明，30×30 图标缓存到本地，双打辅助与使用率排行的道具条目都显示图标。
+> 详情页新增**双打对战辅助**：冠军 / 朱紫 / 剑盾 / BDSP 四个格式的 Smogon 使用率统计，
+> 含推荐性格 / 配点 / 特性 / 道具 / 招式、出场率、常见队友与**可编辑的 Showdown 导出代码**
+> （BDSP / 剑盾 / 朱紫自动加 `!tradeBDSP` / `!tradeSWSH` / `!tradeSV` 交换前缀）；
+> 后台管理可同步与编辑（支持按世代分批、断点续传，带分世代覆盖看板）。
 > 属性克制计算器 UI、收藏、考试在 P3–P5 逐步交付；未实现的页面会明确标注计划阶段，不使用演示数据冒充已完成功能。
 
 ## 技术栈
@@ -44,11 +62,11 @@ npm run dev
 
 ```bash
 # 后端（services/api 下）
-uv run pytest            # 单元测试（当前 75 个）
+uv run pytest            # 单元测试（当前 169 个）
 uv run ruff check .      # 静态检查
 
 # 前端（apps/web 下）
-npm test                 # Vitest（当前 59 个）
+npm test                 # Vitest（当前 183 个）
 npm run typecheck        # tsc 类型检查
 npm run build            # 生产构建
 npm run lint             # oxlint
@@ -56,13 +74,60 @@ npm run lint             # oxlint
 
 ### 4. 图鉴数据同步
 
+> 仓库自带 `services/api/var/media/` 下的图鉴图片（1025 张立绘 + 1025 张小图标 +
+> 256 张道具图标，均为公开图鉴素材，来源见 `docs/DATA_SOURCES.md`），clone 后图片直接可用。
+> SQLite 数据库**不入库**（可由下述脚本重新生成），因此首次运行需同步一次数据。
+
 ```bash
 cd services/api
-uv run python scripts/sync_pokeapi.py            # 同步 #1-151（默认关都图鉴）
+uv run python scripts/sync_pokeapi.py            # 同步全国图鉴 #1-1025
+uv run python scripts/sync_pokeapi.py --gen 2-3   # 按世代同步（城都 + 丰缘）
+uv run python scripts/sync_pokeapi.py --gen 4 --resume  # 跳过已同步，断点续传
 uv run python scripts/sync_pokeapi.py --range 1-9  # 或在后台 /admin/sync 页面点击触发
 ```
 
 同步后数据落在本地 SQLite，断网也能浏览图鉴；手动编辑过的条目不会被同步覆盖。
+全国图鉴共 **1025 只**（Gen 1–9），首轮全量同步较慢；建议按世代分批：
+`--gen 1`、`--gen 2`、…、`--gen 9`，中断后加 `--resume` 继续。
+官方立绘（pokemon.com 公开图鉴资源）会下载到 `services/api/var/media/artwork/`，
+小图标（PokéAPI sprites，96×96）会下载到 `services/api/var/media/sprites/`，
+都由后端 `/media` 静态托管 —— 断网时图片同样可用。
+
+> 首次全量同步需要逐条拉取特性 / 招式详情并下载立绘，约数分钟；之后命中缓存会快很多。
+> 同步逐条提交，进行中仍可正常浏览站点。
+
+只补立绘（不重新拉数据）：
+
+```bash
+uv run python scripts/sync_pokeapi.py --force-artwork --range 1-151
+```
+
+只补小图标（不重新拉数据）：
+
+```bash
+uv run python scripts/sync_pokeapi.py --sprites
+```
+
+特性参考表（名称、S 级评级）随图鉴同步自动汇总；也可以单独回填：
+
+```bash
+uv run python scripts/backfill_abilities.py
+```
+
+双打对战辅助数据（Smogon 月度统计，四个格式）：
+
+```bash
+uv run python scripts/fetch_doubles_stats.py      # 联网抓取 -> 仓库 data/doubles/*.json
+uv run python scripts/sync_doubles.py             # 导入 SQLite（后台 /admin/sync 也可触发）
+uv run python scripts/sync_doubles.py --fetch     # 抓取 + 导入一步完成
+```
+
+道具参考表与图标（双打统计里出现的全部道具）：
+
+```bash
+uv run python scripts/sync_items.py               # PokéAPI 拉取中文名/说明 + 下载 30×30 图标
+uv run python scripts/sync_items.py --no-icons    # 只拉元数据
+```
 
 ## 目录结构
 
@@ -93,6 +158,7 @@ pokemon-lab/
 | P0 | monorepo 骨架、前端设计系统、后端 /health、文档、Git | ✅ 完成 |
 | P1 | 世代/规则种子、属性克制数据与引擎、PokéAPI 客户端 | ✅ 完成 |
 | P2 | 图鉴与搜索（含后台管理：同步 + 编辑） | ✅ 完成 |
+| P2+ | 特性页、全国图鉴 Gen 2–9、双打对战辅助（冠军 / 朱紫 / 剑盾 / BDSP） | ✅ 完成 |
 | P3 | 属性克制计算器 UI | ⏳ 下一个 |
 | P4 | 收藏与笔记 | 未开始 |
 | P5 | 大师考试 v0 | 未开始 |

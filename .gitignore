@@ -42,8 +42,12 @@ coverage.xml
 htmlcov/
 
 # ---------- 运行期产物（不入库）----------
-# SQLite 数据库文件与 PokéAPI 落盘缓存
-services/api/var/
+# SQLite 数据库文件与 PokéAPI 落盘缓存（可用 sync 脚本重新生成）
+services/api/var/*
+# 例外：图鉴图片随仓库分发，clone 后离线可用。
+# 图片来源见 docs/DATA_SOURCES.md（pokemon.com 官方图鉴立绘 / PokéAPI sprites）。
+!services/api/var/media/
+!services/api/var/media/**
 *.db
 *.db-journal
 *.db-wal
