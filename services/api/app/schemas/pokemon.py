@@ -37,6 +37,10 @@ class PokemonSummary(BaseModel):
     )
     is_legendary: bool = False
     is_mythical: bool = False
+    #: 对战分类键：normal / pseudo_legendary / restricted / sub_legendary /
+    #: mythical / paradox（中文名见 `battle_class_zh`）。
+    battle_class: str = "normal"
+    battle_class_zh: str = "普通"
     abilities: list[PokemonListAbility] = []
     is_demo: bool = Field(description="演示数据标记，前端显式展示")
 
@@ -51,6 +55,8 @@ class PokemonListMeta(BaseModel):
 class PokemonListResponse(BaseModel):
     items: list[PokemonSummary]
     meta: PokemonListMeta
+    #: 各对战分类的数量（键与 `battle_class` 一致），供筛选条展示；不含其它筛选条件的影响。
+    battle_class_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class PokemonAbility(BaseModel):
@@ -61,6 +67,38 @@ class PokemonAbility(BaseModel):
     effect_en: str | None = None
     tier: Literal["s", "normal"] = "normal"
     is_s_tier: bool = False
+
+
+class PokemonFormSummary(BaseModel):
+    """详情页形态切换菜单的一项（默认形态与其它形态都包含）。"""
+
+    name: str = Field(description="形态 slug（默认形态用 pokemon.name_en）")
+    label: str = Field(description="中文形态名（缺失时回落为英文形态名）")
+    zh: str | None = Field(default=None, description="中文形态名；缺失表示没有可确认的翻译")
+    name_en: str | None = Field(default=None, description="PokéAPI 英文形态名，如 Wash Rotom")
+    types: list[str] = []
+    is_default: bool = Field(default=False, description="是否为该图鉴编号的默认形态")
+    sprite_url: str | None = None
+
+
+class PokemonFormDetail(BaseModel):
+    """单个形态的完整可用信息（属性 / 种族值 / 特性 / 身高体重 / 立绘）。"""
+
+    dex_number: int
+    name: str
+    label: str
+    zh: str | None = None
+    name_en: str | None = None
+    types: list[str] = []
+    stats: dict[str, int] = Field(default_factory=dict)
+    total_stats: int | None = None
+    abilities: list[PokemonAbility] = []
+    height_dm: int | None = None
+    weight_hg: int | None = None
+    artwork_url: str | None = None
+    artwork_fallback_url: str | None = None
+    sprite_url: str | None = None
+    is_default: bool = False
 
 
 class PokemonEvolutionNode(BaseModel):
@@ -126,6 +164,10 @@ class PokemonDetail(BaseModel):
     abilities: list[PokemonAbility]
     evolution: dict = Field(default_factory=dict, description="进化链树")
     moves: PokemonMoves = Field(default_factory=PokemonMoves)
+    forms: list[PokemonFormSummary] = Field(
+        default_factory=list,
+        description="该图鉴编号的形态切换菜单（默认形态在前）；只有一个形态时为空",
+    )
 
     # ---------- 图鉴档案 ----------
     genus_zh: str | None = None
@@ -142,6 +184,10 @@ class PokemonDetail(BaseModel):
     is_legendary: bool = False
     is_mythical: bool = False
     is_baby: bool = False
+    #: 对战分类键：normal / pseudo_legendary / restricted / sub_legendary /
+    #: mythical / paradox（与图鉴列表同一套规则）。
+    battle_class: str = "normal"
+    battle_class_zh: str = "普通"
     gender_rate: int | None = Field(
         default=None, description="雌性比例（0–8）；-1 表示无性别；None 表示未知"
     )
@@ -236,9 +282,7 @@ class AdminSyncStatusResponse(BaseModel):
     coverage: float | None
     artwork_cached: int | None = None
     moves_covered: int | None = None
-    per_generation: dict = Field(
-        default_factory=dict, description="世代 → 已同步数量（1–9）"
-    )
+    per_generation: dict = Field(default_factory=dict, description="世代 → 已同步数量（1–9）")
 
 
 class AdminOpLogEntry(BaseModel):

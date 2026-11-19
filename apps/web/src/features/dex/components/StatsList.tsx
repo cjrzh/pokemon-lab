@@ -13,11 +13,9 @@ import { STAT_BAR_MAX, STAT_COLOR, STAT_LABELS, STAT_ORDER, statTotal } from './
 export function StatsList({
   stats,
   className,
-  compact = false,
 }: {
   stats: Record<string, number>
   className?: string
-  compact?: boolean
 }) {
   return (
     <dl className={cn('space-y-2', className)}>
@@ -37,7 +35,7 @@ export function StatsList({
               {value}
             </dd>
             <div
-              className={cn('flex-1 overflow-hidden rounded-full bg-muted', compact ? 'h-1.5' : 'h-2')}
+              className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
               role="meter"
               aria-valuenow={value}
               aria-valuemin={0}

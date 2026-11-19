@@ -50,6 +50,8 @@ export interface MoveLearnerPokemon {
   types: string[]
   is_legendary: boolean
   is_mythical: boolean
+  /** 96×96 小图标（本地缓存优先，缺失回落到远程代理）。 */
+  sprite_url?: string | null
   version_groups: Record<string, MoveLearnEntry[]>
   latest_methods: string[]
 }

@@ -136,7 +136,7 @@ export function AbilitiesPage() {
           ) : null}
         </div>
 
-        <div className="inline-flex rounded-lg border p-0.5" role="group" aria-label="按评级筛选">
+        <div className="inline-flex rounded-xl border border-border/70 bg-background/50 p-1" role="group" aria-label="按评级筛选">
           {(
             [
               { value: 'all', label: '全部' },
@@ -153,10 +153,10 @@ export function AbilitiesPage() {
               }}
               aria-pressed={tier === option.value}
               className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                'rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
                 tier === option.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  ? 'gradient-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
               )}
             >
               {option.label}

@@ -41,6 +41,11 @@ data/（仓库内规范数据，跨端共享唯一真相来源）
 ```
 generations(id, label, region, released_at)
 rulesets(id, label, generation_id, notes)        # 如 gen9-standard
+pokemon_form(name, dex_number, suffix, zh, name_en_label, types_json, stats_json,
+             abilities_json, height_dm, weight_hg, artwork_path, artwork_url,
+             sprite_path, sprite_url, position)
+                                                 # P2+；同一图鉴编号下机制不同的其它形态
+                                                 # 只收录属性/种族值/特性/体重有差异的；纯外观形态不建行
 pokemon(dex_number, name_en/zh/ja, types_json, stats_json, abilities_json,
         evolution_json, moves_json, genus_zh/en, flavor_zh/en,
         flavor_zh_source, genus_zh_source,   # pokeapi 官方 / project 项目自译
@@ -66,13 +71,22 @@ doubles_format(key, label, short_label, game, ruleset, smogon_format, month, cut
 doubles_pokemon_stat(format_key, showdown_name, dex_number, rank, usage,
                abilities_json, items_json, moves_json, spreads_json,
                teammates_json, tera_types_json)          # P2+；每个格式 × 形态的配装统计
-collections / notes / exam_sessions / exam_answers / questions  # P4–P5，均带 owner_key
+team(id, owner_key, name, format_key, note, analysis_json, analysis_at,
+     analysis_members_hash, created_at, updated_at)
+                                                 # P3；双打队伍。owner_key 为历史遗留列，
+                                                 # 个人自用已不做隔离（不再参与过滤）
+team_member(team_id, position, dex_number, showdown_name, nickname, item,
+            ability, nature, evs_json, ivs_json, moves_json, tera_type,
+            gender, shiny, level)                # P3；槽位 0–5，配置以 JSON 整存
+                                                 # 合法性（编号/道具唯一、招式特性可用）在
+                                                 # domain/team_rules.py 校验，不写进表约束
 schema_meta(key, value)                          # 结构版本记录（已有）
 ```
 
 核心原则：
 - **参考数据**（世代、规则、克制表、题库）只有一份规范来源，即 `data/` + 种子脚本。
-- **用户数据**带 `owner_key` 与可选的 `ruleset_id`，未来接账号体系只改一处。
+- **用户数据**为单实例共享（个人自用，不做隔离）；`team.owner_key` 是历史遗留列，
+  将来接账号体系时可直接改造成账号 id，改动集中在 `app/api/deps.py`。
 - **错题本不建表**：由 `exam_answers.is_correct=0` 派生，避免两处数据漂移。
 
 ## 3.5 编辑/浏览分离（P2 起）
@@ -119,6 +133,13 @@ SQLite doubles_format / doubles_pokemon_stat
 - **道具与统计弱关联**：统计数据只存道具 slug，展示时按 slug 批量查 `item_ref`
   （`item_icon_lookup`），图标地址本地优先、缺失为 null；未同步的道具显示占位，
   不拼可能 404 的远程地址。
+- **形态是独立维度，不是第二条宝可梦**：`pokemon` 一个编号一行，机制上有差异的其它形态
+  放 `pokemon_form`（`services/form_service.py`）。详情页只返回菜单摘要，切换时按需请求
+  `/pokemon/{dex}/forms/{slug}`；默认形态直接用详情数据，不额外发请求。
+- **招式的数值与学习记录分离**：`move_ref`（数值）来自 `/move/{slug}`，`move_learner`
+  来自 `pokemon.moves_json`（学习记录）。上游宝可梦招式表漏招时，用
+  `scripts/backfill_move_refs.py` 只补数值，不伪造学习记录 —— 属性徽章能显示，
+  但「谁会这招」仍只反映真实数据。
 
 ## 7. 属性克制表：一份数据、两端共用
 
@@ -154,7 +175,7 @@ SQLite doubles_format / doubles_pokemon_stat
 | 决策 | 理由 |
 | --- | --- |
 | 属性表只存在 `data/`，不复制进两端代码 | 单一真相来源 |
-| 匿名 owner_key 而非登录 | MVP 复杂度可控，接口单一替换点 |
+| 不做登录 / 不做浏览器隔离（个人自用） | 单实例复杂度最低；隔离会让「换浏览器就看不到队伍」 |
 | SQLAlchemy async + aiosqlite | 与既有工程习惯一致，支持后续迁移 |
 | 克制计算前端本地做 + 后端可校验 | 离线可用、即时反馈 |
 | 用 uv 管 Python、npm 管前端 | 各自生态的标准工具 |

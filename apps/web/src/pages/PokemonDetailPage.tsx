@@ -31,8 +31,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PokemonArtwork } from '@/features/dex/components/PokemonArtwork'
+import { PokemonSearchBar } from '@/features/dex/components/PokemonSearchBar'
+import { PokemonFormSwitcher } from '@/features/dex/components/PokemonFormSwitcher'
 import { StatsList, StatColorLegend, StatTotal } from '@/features/dex/components/StatsList'
 import { GENERATION_REGION } from '@/features/dex/components/stats'
+import { BattleClassBadge } from '@/features/dex/components/BattleClassBadge'
 import { TypeBadge } from '@/features/dex/components/TypeBadge'
 import { TypeMatchup } from '@/features/dex/components/TypeMatchup'
 import { DoublesCard } from '@/features/doubles/DoublesCard'
@@ -42,7 +45,7 @@ import type {
   PokemonMove,
   PokemonMoves,
 } from '@/features/dex/api'
-import { resolveMediaUrl } from '@/features/dex/api'
+import { DEFAULT_FORM_NAME, resolveMediaUrl } from '@/features/dex/api'
 import {
   countByMethod,
   defaultVersionGroup,
@@ -62,7 +65,7 @@ import {
 import { abilityDetailLink } from '@/features/abilities/api'
 import { moveDetailLink } from '@/features/moves/api'
 import { useSTierAbilityNames } from '@/features/abilities/hooks'
-import { usePokemonDetail } from '@/features/dex/hooks'
+import { usePokemonDetail, usePokemonForm } from '@/features/dex/hooks'
 import { ZH as TYPE_ZH } from '@/features/type-chart/data'
 import { describeApiError } from '@/lib/apiClient'
 import { cn } from '@/lib/utils'
@@ -144,13 +147,19 @@ export function PokemonDetailPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <Button asChild size="sm" variant="ghost" className="-ml-2">
+      {/* ---------- 顶部：搜索栏 + 返回 / 上一只 / 下一只 ---------- */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button asChild size="sm" variant="ghost" className="-ml-2 shrink-0">
           <Link to="/dex">
             <ArrowLeft aria-hidden="true" />
             返回图鉴
           </Link>
         </Button>
+
+        {/* 搜索栏始终在图鉴详情页最上方，切只看无需先返回列表 */}
+        <div className="min-w-56 flex-1">
+          <PokemonSearchBar currentDex={detail.data?.dex_number} />
+        </div>
 
         {detail.data ? (
           <div className="flex items-center gap-1.5">
@@ -221,11 +230,47 @@ function DetailBody({ detail }: { detail: PokemonDetail }) {
   // S 级特性名集合（图鉴页标红加粗）；查询失败时静默降级为普通显示。
   const sTierQuery = useSTierAbilityNames()
   const sTierNames = sTierQuery.data ?? new Set<string>()
-  const heightM = detail.height_dm != null ? detail.height_dm / 10 : null
-  const weightKg = detail.weight_hg != null ? detail.weight_hg / 10 : null
+
+  // ---------- 形态切换 ----------
+  // 默认形态用详情数据；其它形态按需请求 `/pokemon/{dex}/forms/{slug}`。
+  const [activeForm, setActiveForm] = useState<string>(DEFAULT_FORM_NAME)
+  const formQuery = usePokemonForm(detail.dex_number, activeForm)
+  const forms = detail.forms ?? []
+  const activeSummary = forms.find((form) => form.name === activeForm) ?? null
+  // 形态数据未到时沿用默认形态，避免切换瞬间整块空白
+  const activeView = formQuery.data ?? null
+  // 默认形态在菜单里的 name 是 pokemon.name_en，也视为「默认」
+  const defaultFormName = forms.find((form) => form.is_default)?.name ?? null
+  const isDefaultForm =
+    !forms.length || activeForm === DEFAULT_FORM_NAME || activeForm === defaultFormName
+
+  const view = isDefaultForm
+    ? {
+        types: detail.types,
+        stats: detail.stats,
+        abilities: detail.abilities,
+        height_dm: detail.height_dm,
+        weight_hg: detail.weight_hg,
+        artwork_url: detail.artwork_url,
+        artwork_fallback_url: detail.artwork_fallback_url ?? detail.sprite_url,
+      }
+    : {
+        types: activeView?.types ?? detail.types,
+        stats: activeView?.stats ?? detail.stats,
+        abilities: activeView?.abilities ?? detail.abilities,
+        height_dm: activeView?.height_dm ?? detail.height_dm,
+        weight_hg: activeView?.weight_hg ?? detail.weight_hg,
+        artwork_url: activeView?.artwork_url ?? detail.artwork_url,
+        artwork_fallback_url:
+          activeView?.artwork_fallback_url ?? detail.artwork_fallback_url ?? detail.sprite_url,
+      }
+
+  const heightM = view.height_dm != null ? view.height_dm / 10 : null
+  const weightKg = view.weight_hg != null ? view.weight_hg / 10 : null
   const displayName = detail.name_zh ?? detail.name_en
-  const primaryType = detail.types[0] ?? 'normal'
-  const secondaryType = detail.types[1] ?? primaryType
+  const formLabel = !isDefaultForm ? (activeSummary?.label ?? activeForm) : null
+  const primaryType = view.types[0] ?? 'normal'
+  const secondaryType = view.types[1] ?? primaryType
   const badges = [
     detail.is_legendary ? { label: '传说的宝可梦', icon: Star } : null,
     detail.is_mythical ? { label: '幻之宝可梦', icon: Sparkles } : null,
@@ -247,16 +292,13 @@ function DetailBody({ detail }: { detail: PokemonDetail }) {
         <div className="relative grid gap-6 p-4 sm:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] sm:p-6">
           <div className="relative">
             <PokemonArtwork
-              src={resolveMediaUrl(detail.artwork_url)}
-              fallbackSrc={resolveMediaUrl(detail.artwork_fallback_url ?? detail.sprite_url)}
+              src={resolveMediaUrl(view.artwork_url)}
+              fallbackSrc={resolveMediaUrl(view.artwork_fallback_url)}
               alt={displayName}
               variant="hero"
               className="mx-auto aspect-square w-full max-w-68 bg-transparent sm:max-w-none"
             />
-            {/* 六项种族值的迷你条形图：Hero 里就能看出强度分布 */}
-            <div className="mx-auto mt-1 w-full max-w-68 sm:max-w-none">
-              <StatsList stats={detail.stats} compact />
-            </div>
+            {/* 种族值只在下方「种族值」卡片展示一次（含合计与图例），Hero 不再重复 */}
           </div>
 
           <div className="flex min-w-0 flex-col">
@@ -267,6 +309,11 @@ function DetailBody({ detail }: { detail: PokemonDetail }) {
                 </p>
                 <h1 className="font-heading mt-1 text-[2rem] leading-none font-semibold tracking-tight">
                   {displayName}
+                  {formLabel ? (
+                    <span className="ml-2 align-middle text-base font-medium text-muted-foreground">
+                      {formLabel}
+                    </span>
+                  ) : null}
                 </h1>
                 <p className="mt-1.5 text-sm text-muted-foreground">
                   {[detail.name_en, detail.name_ja].filter(Boolean).join(' · ')}
@@ -282,9 +329,10 @@ function DetailBody({ detail }: { detail: PokemonDetail }) {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              {detail.types.map((t) => (
+              {view.types.map((t) => (
                 <TypeBadge key={t} type={t} className="px-2.5 py-1 text-sm shadow-sm" />
               ))}
+              <BattleClassBadge battleClass={detail.battle_class} showNormal />
               {badges.map(({ label, icon: Icon }) => (
                 <Badge key={label} variant="secondary" className="gap-1 backdrop-blur">
                   <Icon aria-hidden="true" />
@@ -292,6 +340,22 @@ function DetailBody({ detail }: { detail: PokemonDetail }) {
                 </Badge>
               ))}
             </div>
+
+            {forms.length > 1 ? (
+              <PokemonFormSwitcher
+                forms={forms}
+                active={isDefaultForm ? (defaultFormName ?? DEFAULT_FORM_NAME) : activeForm}
+                onSelect={setActiveForm}
+                spriteUrl={resolveMediaUrl}
+              />
+            ) : null}
+
+            {!isDefaultForm && formQuery.isPending ? (
+              <p className="mt-2 text-[11px] text-muted-foreground">正在加载形态数据…</p>
+            ) : null}
+            {!isDefaultForm && formQuery.isError ? (
+              <p className="mt-2 text-[11px] text-destructive">形态数据加载失败，显示的是默认形态。</p>
+            ) : null}
 
             {detail.genus_zh && detail.genus_zh_source === 'project' ? (
               <p className="mt-2">
@@ -347,10 +411,15 @@ function DetailBody({ detail }: { detail: PokemonDetail }) {
               <BarChart3 aria-hidden="true" className="size-4 text-muted-foreground" />
               种族值
             </CardTitle>
-            <StatTotal stats={detail.stats} />
+            <span className="flex items-center gap-3">
+              {!isDefaultForm ? (
+                <span className="text-xs text-muted-foreground">{formLabel}</span>
+              ) : null}
+              <StatTotal stats={view.stats} />
+            </span>
           </CardHeader>
           <CardContent className="space-y-3">
-            <StatsList stats={detail.stats} />
+            <StatsList stats={view.stats} />
             <StatColorLegend />
           </CardContent>
         </Card>
@@ -404,11 +473,11 @@ function DetailBody({ detail }: { detail: PokemonDetail }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {detail.abilities.length === 0 ? (
+          {view.abilities.length === 0 ? (
             <p className="text-sm text-muted-foreground">暂无特性数据。</p>
           ) : (
             <ul className="space-y-3">
-              {detail.abilities.map((ability) => {
+              {view.abilities.map((ability) => {
                 const isS = sTierNames.has(ability.name)
                 return (
                 <li key={ability.name} className="text-sm">
@@ -456,13 +525,13 @@ function DetailBody({ detail }: { detail: PokemonDetail }) {
             属性相性
           </CardTitle>
           <CardDescription>
-            {detail.types.map((t) => TYPE_ZH[t] ?? t).join(' / ')} 的攻防倍率：
+            {view.types.map((t) => TYPE_ZH[t] ?? t).join(' / ')} 的攻防倍率：
             「受击」看被各属性攻击时的伤害倍率，「出击」看用自身属性招式攻击各属性时的倍率。
             与属性克制计算器共用同一份规范克制表。
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TypeMatchup types={detail.types} />
+          <TypeMatchup types={view.types} />
         </CardContent>
       </Card>
 

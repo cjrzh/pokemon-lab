@@ -27,6 +27,7 @@ from app.schemas.moves import (
     MoveSummary,
 )
 from app.services.move_service import method_label, version_label
+from app.services.sprite_service import sprite_media_url
 
 router = APIRouter(prefix="/moves", tags=["moves"])
 
@@ -131,7 +132,7 @@ async def get_move(session: DbSession, name: str) -> MoveDetail:
         brief = briefs.get(row.dex_number)
         if brief is None:
             continue
-        name_zh, name_en, types_json, legendary, mythical = brief
+        name_zh, name_en, types_json, legendary, mythical, sprite_path = brief
         try:
             version_groups = json.loads(row.version_groups_json or "{}")
         except (json.JSONDecodeError, TypeError):
@@ -164,6 +165,7 @@ async def get_move(session: DbSession, name: str) -> MoveDetail:
                 types=types,
                 is_legendary=legendary,
                 is_mythical=mythical,
+                sprite_url=sprite_media_url(row.dex_number, sprite_path),
                 version_groups=methods,
                 latest_methods=[entry["method"] for entry in version_groups.get(latest, [])],
             )

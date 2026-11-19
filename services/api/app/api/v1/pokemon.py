@@ -11,9 +11,12 @@
 
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import DbSession
+from app.domain import battle_class as battle_class_domain
 from app.domain.pokemon_parser import (
     DAMAGE_CLASS_ZH,
     LEARN_METHOD_ORDER,
@@ -25,6 +28,8 @@ from app.repositories.pokemon_repo import PokemonListQuery
 from app.schemas.pokemon import (
     PokemonAbility,
     PokemonDetail,
+    PokemonFormDetail,
+    PokemonFormSummary,
     PokemonListAbility,
     PokemonListMeta,
     PokemonListResponse,
@@ -35,6 +40,7 @@ from app.schemas.pokemon import (
     PokemonNeighbor,
     PokemonSummary,
 )
+from app.services import form_service
 from app.services.sprite_service import sprite_media_url
 from app.services.type_chart_service import TypeChartUnavailable, load_type_chart
 
@@ -59,8 +65,19 @@ async def list_pokemon(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=200),
     q: str | None = Query(default=None, max_length=64, description="名称子串，中英文皆可"),
+    prefix: bool = Query(
+        default=False,
+        description="只保留以 q 开头的名称（建队选择器用；图鉴页保留子串匹配）",
+    ),
     type: str | None = Query(default=None, description="属性英文键，如 fire"),
     generation: int | None = Query(default=None, ge=1, le=9),
+    battle_class: str | None = Query(
+        default=None,
+        description=(
+            "对战分类：normal / pseudo_legendary / restricted / sub_legendary / "
+            "mythical / paradox"
+        ),
+    ),
     sort: str = Query(
         default="dex",
         description="排序：dex（编号升序）/ dex_desc / total_stats（种族值降序）/ total_stats_asc",
@@ -68,6 +85,11 @@ async def list_pokemon(
 ) -> PokemonListResponse:
     if type is not None:
         _validate_type(type)
+    if battle_class is not None and battle_class not in battle_class_domain.BATTLE_CLASS_KEYS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"battle_class 只接受 {battle_class_domain.BATTLE_CLASS_KEYS}",
+        )
     if sort not in pokemon_repo.POKEMON_SORT_FIELDS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -78,8 +100,10 @@ async def list_pokemon(
         session,
         PokemonListQuery(
             search=q,
+            prefix=prefix,
             type_filter=type,
             generation=generation,
+            battle_class=battle_class,
             sort=sort,
             page=page,
             page_size=page_size,
@@ -90,6 +114,9 @@ async def list_pokemon(
     items = []
     for p in result.items:
         fields = pokemon_repo.parse_json_fields(p)
+        klass = battle_class_domain.classify(
+            p.name_en, is_legendary=p.is_legendary, is_mythical=p.is_mythical
+        )
         items.append(
             PokemonSummary(
                 dex_number=p.dex_number,
@@ -104,6 +131,8 @@ async def list_pokemon(
                 sprite_url=sprite_media_url(p.dex_number, fields.get("sprite_path")),
                 is_legendary=p.is_legendary,
                 is_mythical=p.is_mythical,
+                battle_class=klass,
+                battle_class_zh=battle_class_domain.class_zh(klass),
                 abilities=[
                     PokemonListAbility(
                         name=ability["name"],
@@ -124,6 +153,7 @@ async def list_pokemon(
             total=result.total,
             total_pages=result.total_pages,
         ),
+        battle_class_counts=await pokemon_repo.battle_class_counts(session),
     )
 
 
@@ -170,6 +200,7 @@ async def build_detail(
 
     moves = await _build_moves(session, fields["moves"])
     tier_map = await pokemon_repo.get_ability_tier_map(session)
+    forms = await _build_forms_menu(session, pokemon, fields)
 
     return PokemonDetail(
         dex_number=fields["dex_number"],
@@ -182,6 +213,7 @@ async def build_detail(
         abilities=_abilities_with_tier(fields["abilities"], tier_map),
         evolution=evolution,
         moves=moves,
+        forms=forms,
         genus_zh=fields["genus_zh"],
         genus_en=fields["genus_en"],
         flavor_zh=fields["flavor_zh"],
@@ -194,6 +226,8 @@ async def build_detail(
         is_legendary=fields["is_legendary"],
         is_mythical=fields["is_mythical"],
         is_baby=fields["is_baby"],
+        battle_class=_battle_class_of(fields),
+        battle_class_zh=battle_class_domain.class_zh(_battle_class_of(fields)),
         gender_rate=fields["gender_rate"],
         capture_rate=fields["capture_rate"],
         base_happiness=fields["base_happiness"],
@@ -213,6 +247,114 @@ async def build_detail(
         is_demo=fields["is_demo"],
         synced_at=fields["synced_at"],
     )
+
+
+async def _build_forms_menu(session, pokemon, fields: dict) -> list:
+    """形态切换菜单：默认形态在前，其余按同步顺序；只有一个形态时返回空列表。"""
+    forms = await form_service.list_forms_for_dex(session, pokemon.dex_number)
+    if not forms:
+        return []
+
+    default = form_service.default_form_summary(pokemon)
+    default["sprite_url"] = sprite_media_url(pokemon.dex_number, fields.get("sprite_path"))
+    menu = [PokemonFormSummary(**default)]
+    for form in forms:
+        menu.append(
+            PokemonFormSummary(
+                **form_service.form_summary(form, label=form.zh or form.name_en_label or form.name)
+            )
+        )
+    return menu
+
+
+def _form_detail(
+    form,
+    tier_map: dict[str, str],
+    ability_map: dict[str, dict],
+) -> PokemonFormDetail:
+    """单个形态的详情（属性 / 种族值 / 特性 / 身高体重 / 立绘）。
+
+    形态的 `abilities_json` 通常只有 `name` / `is_hidden`（如蕾冠王的
+    `as-one-glastrier`）。中文名与说明从 `ability` 参考表补齐 ——
+    不补的话页面只能显示 slug，「人马一体」这类特性就看不到。
+    """
+    stats = json.loads(form.stats_json or "{}")
+    abilities = _abilities_with_tier(
+        _fill_ability_names(form.abilities_json, ability_map), tier_map
+    )
+    return PokemonFormDetail(
+        dex_number=form.dex_number,
+        name=form.name,
+        label=form.zh or form.name_en_label or form.name,
+        zh=form.zh,
+        name_en=form.name_en_label,
+        types=json.loads(form.types_json or "[]"),
+        stats=stats,
+        total_stats=sum(stats.values()) if stats else None,
+        abilities=abilities,
+        height_dm=form.height_dm,
+        weight_hg=form.weight_hg,
+        artwork_url=form_service.form_media_url(form.artwork_path, form.artwork_url),
+        artwork_fallback_url=form.sprite_url,
+        sprite_url=form_service.form_media_url(form.sprite_path, form.sprite_url),
+        is_default=False,
+    )
+
+
+def _default_form_detail(pokemon, fields: dict, tier_map: dict[str, str]) -> PokemonFormDetail:
+    """默认形态的详情（与 `pokemon` 表同源）。"""
+    return PokemonFormDetail(
+        dex_number=fields["dex_number"],
+        name=fields["name_en"],
+        label=fields["name_zh"] or fields["name_en"],
+        zh=None,
+        name_en=None,
+        types=fields["types"],
+        stats=fields["stats"],
+        total_stats=fields["total_stats"],
+        abilities=_abilities_with_tier(fields["abilities"], tier_map),
+        height_dm=fields["height_dm"],
+        weight_hg=fields["weight_hg"],
+        artwork_url=_artwork_url(fields),
+        artwork_fallback_url=fields["sprite_url"],
+        sprite_url=sprite_media_url(fields["dex_number"], fields.get("sprite_path")),
+        is_default=True,
+    )
+
+
+@router.get(
+    "/{dex_number}/forms/{form_name}",
+    response_model=PokemonFormDetail,
+    summary="形态详情",
+    description=(
+        "返回某个形态的属性、种族值、特性、身高体重与立绘。"
+        "`form_name` 用 PokéAPI 的形态 slug（如 `urshifu-rapid-strike`）；"
+        "`default` 表示默认形态（数据与图鉴详情相同）。"
+    ),
+)
+async def get_pokemon_form(
+    session: DbSession, dex_number: int, form_name: str
+) -> PokemonFormDetail:
+    pokemon = await pokemon_repo.get_by_dex_number(session, dex_number)
+    if pokemon is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"图鉴编号 {dex_number} 尚未同步或不存在",
+        )
+
+    fields = pokemon_repo.parse_json_fields(pokemon)
+    tier_map = await pokemon_repo.get_ability_tier_map(session)
+
+    if form_name == "default":
+        return _default_form_detail(pokemon, fields, tier_map)
+
+    form = await form_service.get_form(session, form_name)
+    if form is None or form.dex_number != dex_number:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"图鉴编号 {dex_number} 没有形态 {form_name!r}",
+        )
+    return _form_detail(form, tier_map, await pokemon_repo.get_ability_details_map(session))
 
 
 async def _build_moves(session, payload) -> PokemonMoves:
@@ -242,8 +384,7 @@ async def _build_moves(session, payload) -> PokemonMoves:
             level=entry.get("level", 0),
             type=ref.get("type"),
             damage_class=detail,
-            damage_class_zh=ref.get("damage_class_zh")
-            or DAMAGE_CLASS_ZH.get(detail or ""),
+            damage_class_zh=ref.get("damage_class_zh") or DAMAGE_CLASS_ZH.get(detail or ""),
             power=ref.get("power"),
             accuracy=ref.get("accuracy"),
             pp=ref.get("pp"),
@@ -290,6 +431,32 @@ async def _build_moves(session, payload) -> PokemonMoves:
     )
 
 
+def _fill_ability_names(
+    abilities_json: str, ability_map: dict[str, dict] | None = None
+) -> list[dict]:
+    """补全形态特性条目，保证能直接构造 `PokemonAbility`。
+
+    字段优先级：形态自身记录 > `ability` 参考表。形态表里的条目往往只有 slug，
+    中文名 / 说明要从参考表取（参考表由图鉴同步汇总，是这些字段的唯一来源）。
+    """
+    abilities = json.loads(abilities_json or "[]")
+    reference = ability_map or {}
+    filled = []
+    for ability in abilities:
+        if not isinstance(ability, dict) or not ability.get("name"):
+            continue
+        known = reference.get(ability["name"], {})
+        filled.append(
+            {
+                **ability,
+                "zh": ability.get("zh") or known.get("zh"),
+                "effect_zh": ability.get("effect_zh") or known.get("effect_zh"),
+                "effect_en": ability.get("effect_en") or known.get("effect_en"),
+            }
+        )
+    return filled
+
+
 def _abilities_with_tier(abilities: list[dict], tier_map: dict[str, str]) -> list[PokemonAbility]:
     """给特性附上 S 级标记（数据来自 ability 参考表）。"""
     result = []
@@ -303,6 +470,15 @@ def _abilities_with_tier(abilities: list[dict], tier_map: dict[str, str]) -> lis
             )
         )
     return result
+
+
+def _battle_class_of(fields: dict) -> str:
+    """对战分类（规则见 `domain/battle_class.py`；数据缺失时降级为普通）。"""
+    return battle_class_domain.classify(
+        fields["name_en"],
+        is_legendary=bool(fields["is_legendary"]),
+        is_mythical=bool(fields["is_mythical"]),
+    )
 
 
 def _artwork_url(fields: dict) -> str | None:

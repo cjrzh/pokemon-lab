@@ -82,10 +82,16 @@ export type Gender = 'M' | 'F'
 
 export interface ShowdownDraft {
   species: string
+  /** 昵称（可选）；有昵称时头部写作 `昵称 (物种)`。 */
+  nickname?: string | null
   gender: Gender | null
   shiny: boolean
   language: Language
   level: number
+  /** 极巨化等级 0–10（仅剑盾；null = 输出默认值 10，复制出去的代码带完整参数）。 */
+  dynamaxLevel?: number | null
+  /** 超极巨化（仅剑盾）：输出 `Gigantamax: Yes`。 */
+  gigantamax?: boolean
   ability: string
   item: string
   nature: string
@@ -101,6 +107,13 @@ export interface ShowdownRenderOptions {
   tradePrefix: string | null
   /** 是否输出太晶属性行（仅朱紫）。 */
   includeTera: boolean
+  /** 是否输出极巨化等级行（仅剑盾）。 */
+  includeDynamax?: boolean
+  /**
+   * 是否输出 `Language:` 行。剑盾不输出（复制给交换机器人时不需要）；
+   * 缺省为 true，保持详情页其它格式的既有格式。
+   */
+  includeLanguage?: boolean
 }
 
 /**
@@ -174,15 +187,25 @@ function capitalize(value: string): string {
 export function renderShowdown(draft: ShowdownDraft, options: ShowdownRenderOptions): string {
   const lines: string[] = []
 
-  let head = draft.species
+  let head = draft.nickname
+    ? `${draft.nickname} (${draft.species})`
+    : draft.species
   if (draft.gender) head += ` (${draft.gender})`
   if (draft.item.trim()) head += ` @ ${draft.item.trim()}`
   lines.push(head)
 
   if (draft.ability.trim()) lines.push(`Ability: ${draft.ability.trim()}`)
   if (draft.level && draft.level !== 100) lines.push(`Level: ${draft.level}`)
+  // 剑盾始终写出极巨化等级（未设置按 Showdown 默认值 10），
+  // 这样复制出去的代码明确带上该参数，而不是靠隐式默认。
+  if (options.includeDynamax) {
+    const dynamaxLevel = draft.dynamaxLevel ?? 10
+    lines.push(`Dynamax Level: ${dynamaxLevel}`)
+    // 超极巨化紧跟 Dynamax Level（两行相对顺序与 Showdown 一致；解析按行识别）
+    if (draft.gigantamax) lines.push('Gigantamax: Yes')
+  }
   if (draft.shiny) lines.push('Shiny: Yes')
-  lines.push(`Language: ${draft.language}`)
+  if (options.includeLanguage !== false) lines.push(`Language: ${draft.language}`)
   if (options.includeTera && draft.teraType) lines.push(`Tera Type: ${draft.teraType}`)
 
   const evs = draft.evs
@@ -235,4 +258,48 @@ export function normalizeDraft(
       : null,
     moves: draft.moves.map((move) => move.trim()).filter(Boolean).slice(0, 4),
   }
+}
+
+/**
+ * 性格的增减项：`[提升, 下降]`，中性性格为 null。
+ *
+ * 顺序与 `SHOWDOWN_STAT_SHORT` 对应（0 HP / 1 攻击 / 2 防御 / 3 特攻 / 4 特防 / 5 速度）。
+ * 用于下拉框与编辑区标注「▲攻击 ▼特攻」，避免用户只看到名字却不知道效果。
+ */
+export const NATURE_EFFECT: Record<string, [up: number, down: number] | null> = {
+  hardy: null,
+  lonely: [1, 2],
+  brave: [1, 5],
+  adamant: [1, 3],
+  naughty: [1, 4],
+  bold: [2, 1],
+  docile: null,
+  relaxed: [2, 5],
+  impish: [2, 3],
+  lax: [2, 4],
+  timid: [5, 1],
+  hasty: [5, 2],
+  serious: null,
+  jolly: [5, 3],
+  naive: [5, 4],
+  modest: [3, 1],
+  mild: [3, 2],
+  quiet: [3, 5],
+  bashful: null,
+  rash: [3, 4],
+  calm: [4, 1],
+  gentle: [4, 2],
+  sassy: [4, 5],
+  careful: [4, 3],
+  quirky: null,
+}
+
+/** 六项的中文短名（与 EV 编辑器一致）。 */
+export const STAT_ZH = ['HP', '攻击', '防御', '特攻', '特防', '速度'] as const
+
+/** 性格效果的一句话描述，如 `攻击 ↑ / 特攻 ↓`；中性返回「无增减」。 */
+export function natureEffectLabel(nature: string): string {
+  const effect = NATURE_EFFECT[nature]
+  if (!effect) return '无增减'
+  return `${STAT_ZH[effect[0]]} ↑ / ${STAT_ZH[effect[1]]} ↓`
 }

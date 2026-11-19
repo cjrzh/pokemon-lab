@@ -4,7 +4,7 @@
  * 列表数据通过 mock hooks 注入，避免测试依赖后端。
  */
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -31,6 +31,8 @@ const bulbasaur: PokemonSummary = {
   sprite_url: '/media/sprites/1.png',
   is_legendary: false,
   is_mythical: false,
+    battle_class: 'normal',
+    battle_class_zh: '普通',
   abilities: [
     { name: 'overgrow', zh: '茂盛', is_hidden: false, is_s_tier: false },
     { name: 'chlorophyll', zh: '叶绿素', is_hidden: true, is_s_tier: true },
@@ -54,6 +56,8 @@ const mewtwo: PokemonSummary = {
   },
   total_stats: 680,
   is_legendary: true,
+  battle_class: 'restricted',
+  battle_class_zh: '一级神',
   abilities: [],
 }
 
@@ -69,6 +73,7 @@ const state = vi.hoisted(() => ({
   generation: undefined as number | undefined,
   q: undefined as string | undefined,
   sort: undefined as string | undefined,
+  battleClass: undefined as string | undefined,
 }))
 
 vi.mock('@/features/dex/hooks', () => ({
@@ -79,6 +84,7 @@ vi.mock('@/features/dex/hooks', () => ({
     generation?: number
     q?: string
     sort?: string
+    battle_class?: string
   }) => {
     state.page = params.page
     state.pageSize = (params as { page_size?: number }).page_size ?? 24
@@ -86,9 +92,18 @@ vi.mock('@/features/dex/hooks', () => ({
     state.generation = params.generation
     state.q = params.q
     state.sort = params.sort
+    state.battleClass = params.battle_class
     const data: PokemonListResponse = {
       items: pages[params.page] ?? [],
       meta: { page: params.page, page_size: 24, total: 49, total_pages: 3 },
+      battle_class_counts: {
+        normal: 40,
+        pseudo_legendary: 2,
+        restricted: 1,
+        sub_legendary: 4,
+        mythical: 1,
+        paradox: 1,
+      },
     }
     return { isPending: false, isError: false, data, refetch: vi.fn() }
   },
@@ -339,5 +354,41 @@ describe('DexPage', () => {
       'aria-sort',
       'descending',
     )
+  })
+})
+
+describe('DexPage 对战分类', () => {
+  it('开头有分类筛选条，带各分类数量', () => {
+    renderPage()
+    const group = screen.getByRole('group', { name: '按对战分类筛选' })
+
+    for (const label of ['普通', '准神', '一级神', '二级神', '幻兽', '悖谬']) {
+      expect(group).toHaveTextContent(label)
+    }
+    // 计数来自 battle_class_counts
+    expect(group).toHaveTextContent('40')
+  })
+
+  it('点击分类会把 battle_class 传给接口', async () => {
+    renderPage()
+    const group = screen.getByRole('group', { name: '按对战分类筛选' })
+
+    await userEvent.click(within(group).getByRole('button', { name: /准神/ }))
+    expect(state.battleClass).toBe('pseudo_legendary')
+
+    // 再点一次取消
+    await userEvent.click(within(group).getByRole('button', { name: /准神/ }))
+    expect(state.battleClass).toBeUndefined()
+  })
+
+  it('卡片刻画分类徽章；普通不显示', () => {
+    renderPage()
+
+    // 超梦是一级神
+    expect(screen.getAllByText('一级神').length).toBeGreaterThan(1)
+    // 妙蛙种子是普通：卡片里没有「普通」徽章（筛选条里有一个）
+    const group = screen.getByRole('group', { name: '按对战分类筛选' })
+    const normalButtons = within(group).getAllByRole('button', { name: /普通/ })
+    expect(normalButtons).toHaveLength(1)
   })
 })

@@ -128,7 +128,11 @@ export function UsageRankingPage() {
       />
 
       {/* ---------- 格式标签 ---------- */}
-      <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="选择双打格式">
+      <div
+        className="panel mb-4 inline-flex flex-wrap gap-1 p-1"
+        role="group"
+        aria-label="选择双打格式"
+      >
         {(formats.length ? formats : fallbackFormats()).map((item) => {
           const isActive = item.key === format
           return (
@@ -138,11 +142,11 @@ export function UsageRankingPage() {
               onClick={() => updateFormat(item.key)}
               aria-pressed={isActive}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                'inline-flex items-center gap-1.5 rounded-xl border border-transparent px-3 py-1.5 text-xs font-medium transition-all',
                 isActive
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
-                !item.imported && !isActive && 'opacity-60',
+                  ? 'gradient-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                !item.imported && !isActive && 'opacity-55',
               )}
             >
               {item.short_label}
@@ -162,13 +166,13 @@ export function UsageRankingPage() {
         <div className="relative min-w-56 flex-1">
           <Search
             aria-hidden="true"
-            className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
             value={search}
             onChange={(event) => updateSearch(event.target.value)}
             placeholder="搜索中文名、英文名、Showdown 名或图鉴编号…"
-            className="h-9 pl-8"
+            className="h-10 pl-9"
             aria-label="搜索宝可梦"
           />
           {search ? (
@@ -193,7 +197,7 @@ export function UsageRankingPage() {
                 setPage(1)
               }}
               aria-label="每页条数"
-              className="h-8 appearance-none rounded-md border border-input bg-background pr-6 pl-2 text-xs text-foreground tabular-nums focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="h-9 appearance-none rounded-lg border border-border/70 bg-background/60 pr-6 pl-2 text-xs text-foreground tabular-nums transition-colors hover:border-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none"
             >
               {PAGE_SIZE_OPTIONS.map((size) => (
                 <option key={size} value={size}>
@@ -300,9 +304,9 @@ function fallbackFormats(): UsageFormatInfo[] {
 
 function FormatSummary({ format }: { format: UsageFormatInfo }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border bg-card/60 px-3.5 py-2.5 text-xs shadow-sm">
+    <div className="panel flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 text-xs">
       <span className="font-medium text-foreground">{format.label}</span>
-      <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+      <span className="rounded-full bg-muted/70 px-2 py-0.5 text-muted-foreground">
         {formatMonth(format.month)} · cutoff {format.cutoff}
       </span>
       <span className="text-muted-foreground tabular-nums">
@@ -366,15 +370,22 @@ function RankingRow({
   const content = (
     <div
       className={cn(
-        'grid grid-cols-[2.25rem_3rem_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1.5 rounded-xl bg-card px-2.5 py-2 text-sm ring-1 ring-foreground/10 sm:grid-cols-[2.75rem_3.5rem_minmax(0,1.05fr)_minmax(0,1.25fr)_6.5rem]',
-        item.dex_number != null && 'transition-colors group-hover:bg-muted/40',
+        'grid grid-cols-[2.25rem_3rem_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1.5 rounded-2xl border border-border/60 bg-card px-3 py-2.5 text-sm shadow-[var(--card-glow)] transition-all duration-300 sm:grid-cols-[2.75rem_3.5rem_minmax(0,1.05fr)_minmax(0,1.25fr)_6.5rem]',
+        item.dex_number != null &&
+          'group-hover:-translate-y-0.5 group-hover:border-primary/25 group-hover:shadow-[0_20px_44px_-30px_rgb(30_40_120/0.55)]',
       )}
     >
       {/* 名次 */}
       <span
         className={cn(
-          'text-center font-heading text-lg font-semibold tabular-nums',
-          item.rank != null && item.rank <= 3 ? 'text-primary' : 'text-muted-foreground',
+          'flex size-8 items-center justify-center justify-self-center rounded-full font-heading text-sm font-semibold tabular-nums',
+          item.rank === 1 &&
+            'bg-[linear-gradient(145deg,#fcd34d,#f59e0b)] text-[#3b2100] shadow-[0_6px_16px_-6px_rgb(245_158_11/0.75)]',
+          item.rank === 2 &&
+            'bg-[linear-gradient(145deg,#e2e8f0,#94a3b8)] text-[#1e293b] shadow-[0_6px_16px_-8px_rgb(148_163_184/0.8)]',
+          item.rank === 3 &&
+            'bg-[linear-gradient(145deg,#f3c39a,#c2763f)] text-[#2b1205] shadow-[0_6px_16px_-8px_rgb(194_118_63/0.8)]',
+          (item.rank == null || item.rank > 3) && 'text-muted-foreground',
         )}
       >
         {item.rank ?? '—'}
@@ -382,7 +393,7 @@ function RankingRow({
 
       {/* 小图标（96×96）：行高受限，用 sprite 而不是 475px 立绘 */}
       <div
-        className="relative aspect-square overflow-hidden rounded-lg"
+        className="relative aspect-square overflow-hidden rounded-xl ring-1 ring-inset ring-foreground/5"
         style={{
           background: `linear-gradient(160deg, color-mix(in oklab, var(--type-${item.types[0] ?? 'normal'}) 18%, transparent), transparent 72%)`,
         }}
@@ -391,7 +402,7 @@ function RankingRow({
           src={resolveMediaUrl(item.sprite_url)}
           alt={name}
           type={item.types[0]}
-          className="size-full rounded-lg"
+          className="size-full rounded-xl"
         />
       </div>
 
@@ -451,9 +462,9 @@ function RankingRow({
         <p className="text-right text-sm font-semibold tabular-nums">
           {item.usage != null ? formatPct(item.usage) : '—'}
         </p>
-        <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-muted">
+        <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-muted/70">
           <span
-            className="block h-full rounded-full bg-primary/70"
+            className="block h-full rounded-full bg-[linear-gradient(90deg,var(--primary),var(--brand-cyan))]"
             style={{
               width: `${Math.min(100, ((item.usage ?? 0) / maxUsage) * 100)}%`,
             }}
@@ -537,9 +548,9 @@ function Pagination({
                   onClick={() => onChange(item)}
                   aria-current={item === page ? 'page' : undefined}
                   className={cn(
-                    'h-7 min-w-7 rounded-md px-1.5 text-xs font-medium tabular-nums transition-colors',
+                    'h-7 min-w-7 rounded-lg px-1.5 text-xs font-medium tabular-nums transition-colors',
                     item === page
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'gradient-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
                 >
@@ -572,7 +583,7 @@ function RankingSkeleton() {
   return (
     <div className="space-y-1.5" aria-busy="true">
       {Array.from({ length: 10 }, (_, index) => (
-        <Skeleton key={index} className="h-16 w-full rounded-xl" />
+        <Skeleton key={index} className="h-[4.5rem] w-full rounded-2xl" />
       ))}
       <p className="sr-only">正在加载使用率排行</p>
     </div>

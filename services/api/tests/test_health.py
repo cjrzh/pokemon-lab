@@ -74,20 +74,20 @@ async def test_database_file_is_created_inside_var_dir(client: AsyncClient, var_
     assert settings.database_path.exists()
 
 
-async def test_cors_preflight_allows_owner_key_header(client: AsyncClient) -> None:
-    """前端会用 X-Owner-Key 携带匿名身份，预检必须放行该头。"""
+async def test_cors_preflight_allows_json_content_type(client: AsyncClient) -> None:
+    """写接口（建队等）会带 Content-Type: application/json，预检必须放行。"""
     response = await client.options(
         HEALTH_URL,
         headers={
             "Origin": "http://localhost:5173",
-            "Access-Control-Request-Method": "GET",
-            "Access-Control-Request-Headers": "X-Owner-Key",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "Content-Type",
         },
     )
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
-    assert "x-owner-key" in response.headers["access-control-allow-headers"].lower()
+    assert "content-type" in response.headers["access-control-allow-headers"].lower()
 
 
 async def test_root_endpoint_points_to_docs_and_health(client: AsyncClient) -> None:

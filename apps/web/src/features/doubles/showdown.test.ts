@@ -6,7 +6,10 @@ import { describe, expect, it } from 'vitest'
 
 import type { DoublesFormatBlock, DoublesProfile } from './api'
 import {
+  NATURE_EFFECT,
+  NATURE_EN,
   defaultDraft,
+  natureEffectLabel,
   normalizeDraft,
   renderShowdown,
   type ShowdownDraft,
@@ -149,6 +152,74 @@ describe('renderShowdown', () => {
       'Level:',
     )
   })
+
+  it('剑盾不输出 Language 行（includeLanguage=false），其余格式保持默认', () => {
+    const draft = defaultDraft(format(), profile, 4)
+
+    // 默认（其它格式）：照常输出
+    expect(renderShowdown(draft, { tradePrefix: null, includeTera: false })).toContain(
+      'Language: CHS',
+    )
+    // 剑盾：不输出
+    expect(
+      renderShowdown(draft, {
+        tradePrefix: '!tradeSWSH',
+        includeTera: false,
+        includeDynamax: true,
+        includeLanguage: false,
+      }),
+    ).not.toContain('Language:')
+  })
+
+  it('极巨化等级只在剑盾输出，未设置时补默认值 10', () => {
+    const base = defaultDraft(format(), profile, 4)
+    const withLevel = { ...base, dynamaxLevel: 7 }
+
+    const swsh = renderShowdown(withLevel, {
+      tradePrefix: null,
+      includeTera: false,
+      includeDynamax: true,
+    })
+    expect(swsh).toContain('Dynamax Level: 7  ')
+
+    // 未传 includeDynamax（朱紫 / 冠军）时不输出
+    expect(
+      renderShowdown(withLevel, { tradePrefix: null, includeTera: false }),
+    ).not.toContain('Dynamax Level')
+
+    // 显式 10 / 未设置都写出 10：复制出去的代码要带上这个参数
+    expect(
+      renderShowdown(
+        { ...base, dynamaxLevel: 10 },
+        { tradePrefix: null, includeTera: false, includeDynamax: true },
+      ),
+    ).toContain('Dynamax Level: 10  ')
+    expect(
+      renderShowdown(
+        { ...base, dynamaxLevel: undefined },
+        { tradePrefix: null, includeTera: false, includeDynamax: true },
+      ),
+    ).toContain('Dynamax Level: 10  ')
+  })
+
+  it('超极巨化只在剑盾输出 Gigantamax 行，紧跟在 Dynamax Level 之后', () => {
+    const base = defaultDraft(format(), profile, 4)
+    const gmax = { ...base, dynamaxLevel: 8, gigantamax: true }
+    const text = renderShowdown(gmax, {
+      tradePrefix: '!tradeSWSH',
+      includeTera: false,
+      includeDynamax: true,
+    })
+
+    expect(text).toContain('Gigantamax: Yes')
+    const lines = text.split('\n').map((line) => line.trim())
+    expect(lines[lines.indexOf('Dynamax Level: 8') + 1]).toBe('Gigantamax: Yes')
+
+    // 朱紫 / 冠军没有极巨化，不输出
+    expect(
+      renderShowdown(gmax, { tradePrefix: null, includeTera: false }),
+    ).not.toContain('Gigantamax')
+  })
 })
 
 describe('usageEnglish / usageOptionLabel', () => {
@@ -203,5 +274,29 @@ describe('normalizeDraft', () => {
     expect(normalizeDraft({ ...defaultDraft(format(), profile, 4), level: 999 }, 'ev').level).toBe(
       100,
     )
+  })
+})
+
+describe('性格增减', () => {
+  it('标注提升 / 下降项', () => {
+    expect(natureEffectLabel('adamant')).toBe('攻击 ↑ / 特攻 ↓')
+    expect(natureEffectLabel('timid')).toBe('速度 ↑ / 攻击 ↓')
+    expect(natureEffectLabel('jolly')).toBe('速度 ↑ / 特攻 ↓')
+  })
+
+  it('中性性格返回无增减', () => {
+    for (const neutral of ['hardy', 'docile', 'serious', 'bashful', 'quirky']) {
+      expect(natureEffectLabel(neutral)).toBe('无增减')
+    }
+  })
+
+  it('25 种性格全部有定义，且增减项不重复', () => {
+    const keys = Object.keys(NATURE_EN)
+    expect(keys).toHaveLength(25)
+    for (const key of keys) {
+      expect(key in NATURE_EFFECT).toBe(true)
+      const effect = NATURE_EFFECT[key]
+      if (effect) expect(effect[0]).not.toBe(effect[1])
+    }
   })
 })

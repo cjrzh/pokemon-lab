@@ -34,6 +34,9 @@
     --color-secondary: var(--secondary);
     --color-primary-foreground: var(--primary-foreground);
     --color-primary: var(--primary);
+    --color-brand-cyan: var(--brand-cyan);
+    --color-brand-violet: var(--brand-violet);
+    --color-brand-amber: var(--brand-amber);
     --color-popover-foreground: var(--popover-foreground);
     --color-popover: var(--popover);
     --color-card-foreground: var(--card-foreground);
@@ -43,98 +46,262 @@
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-xl: calc(var(--radius) * 1.3);
+    --radius-2xl: calc(var(--radius) * 1.7);
+    --radius-3xl: calc(var(--radius) * 2.1);
+    --radius-4xl: calc(var(--radius) * 2.5);
 }
 
 /*
- * 研究所冷蓝主题（值由设计稿 hex 精确换算为 OKLCH，对比度已按 WCAG AA 校验）：
- *   primary #4F6BED（靛蓝） · accent 取水属性蓝调 · 背景带一丝冷蓝灰。
- * 深色模式整体偏深蓝黑（#101219），primary 提亮为 #8CA3F8 保证在暗色卡上的可读性。
+ * 研究所冷蓝主题 2.0 ·「深夜实验室」：
+ *   - 背景带一层极淡的冷蓝，卡片是半透明玻璃面；
+ *   - 主色保持靛蓝，新增青 / 紫 / 琥珀三个辅助色，用来做渐变、光晕与数据强调；
+ *   - 深色模式是真正的深空蓝黑，而不是简单把浅色反相。
+ * 颜色均由设计稿 hex 换算为 OKLCH，正文对比度按 WCAG AA 校验。
  */
 :root {
-    --background: oklch(0.979 0.003 264.5);        /* #F7F8FA */
-    --foreground: oklch(0.210 0.010 276.6);        /* #17181D */
+    --background: oklch(0.973 0.006 265);          /* #F5F7FC */
+    --foreground: oklch(0.205 0.018 272);          /* #151824 */
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.210 0.010 276.6);
+    --card-foreground: oklch(0.205 0.018 272);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.210 0.010 276.6);
-    --primary: oklch(0.579 0.198 270.0);           /* #4F6BED */
+    --popover-foreground: oklch(0.205 0.018 272);
+    --primary: oklch(0.565 0.215 269);             /* #4C5FF0 */
     --primary-foreground: oklch(1 0 0);
-    --secondary: oklch(0.955 0.010 267.4);         /* #EDF0F7 */
-    --secondary-foreground: oklch(0.283 0.079 272.5); /* #1D2550 */
-    --muted: oklch(0.958 0.007 268.5);             /* #EFF1F6 */
-    --muted-foreground: oklch(0.499 0.027 266.7);  /* #5C6373 */
-    --accent: oklch(0.949 0.018 269.1);            /* #E9EEFB */
-    --accent-foreground: oklch(0.283 0.079 272.5); /* #1D2550 */
+    --secondary: oklch(0.952 0.012 265);
+    --secondary-foreground: oklch(0.27 0.06 270);
+    --muted: oklch(0.955 0.008 265);
+    --muted-foreground: oklch(0.505 0.026 266);
+    --accent: oklch(0.94 0.028 266);
+    --accent-foreground: oklch(0.27 0.06 270);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.925 0.013 266.7);            /* #E2E6EF */
-    --input: oklch(0.894 0.020 267.3);             /* #D6DCEA */
-    --ring: oklch(0.732 0.117 272.4);              /* #8FA3F2 */
+    --border: oklch(0.905 0.013 266);              /* #E1E6F0 */
+    --input: oklch(0.885 0.018 266);
+    --ring: oklch(0.72 0.13 270);
     --chart-1: #4f6bed;
     --chart-2: #8b7cf6;
     --chart-3: #22b8a6;
     --chart-4: #6390f0;
     --chart-5: #64748b;
-    --radius: 0.7rem;
-    --sidebar: oklch(0.988 0.004 271.4);           /* #FAFBFE */
-    --sidebar-foreground: oklch(0.210 0.010 276.6);
-    --sidebar-primary: oklch(0.579 0.198 270.0);
+    --radius: 0.8rem;
+    --sidebar: oklch(0.986 0.004 266);             /* #FAFBFE */
+    --sidebar-foreground: oklch(0.205 0.018 272);
+    --sidebar-primary: oklch(0.565 0.215 269);
     --sidebar-primary-foreground: oklch(1 0 0);
-    --sidebar-accent: oklch(0.949 0.018 269.1);    /* #E9EEFB */
-    --sidebar-accent-foreground: oklch(0.283 0.079 272.5);
-    --sidebar-border: oklch(0.925 0.013 266.7);
-    --sidebar-ring: oklch(0.732 0.117 272.4);
+    --sidebar-accent: oklch(0.945 0.025 266);
+    --sidebar-accent-foreground: oklch(0.27 0.06 270);
+    --sidebar-border: oklch(0.91 0.012 266);
+    --sidebar-ring: oklch(0.72 0.13 270);
+
+    --brand-cyan: oklch(0.72 0.13 205);
+    --brand-violet: oklch(0.62 0.2 295);
+    --brand-amber: oklch(0.78 0.15 75);
+    --card-glow: 0 1px 2px rgb(20 28 48 / 0.05), 0 16px 32px -24px rgb(20 28 48 / 0.35);
 }
 
 .dark {
-    --background: oklch(0.183 0.015 272.4);        /* #101219 */
-    --foreground: oklch(0.941 0.010 273.4);        /* #E9EBF2 */
-    --card: oklch(0.219 0.023 269.0);              /* #161A25 */
-    --card-foreground: oklch(0.941 0.010 273.4);
-    --popover: oklch(0.219 0.023 269.0);
-    --popover-foreground: oklch(0.941 0.010 273.4);
-    --primary: oklch(0.733 0.126 271.5);           /* #8CA3F8 */
-    --primary-foreground: oklch(0.200 0.065 272.6); /* #0D1233 */
-    --secondary: oklch(0.263 0.031 270.8);         /* #1F2434 */
-    --secondary-foreground: oklch(0.941 0.010 273.4);
-    --muted: oklch(0.254 0.028 269.2);             /* #1D2230 */
-    --muted-foreground: oklch(0.706 0.032 269.0);  /* #98A0B5 */
-    --accent: oklch(0.286 0.044 270.5);            /* #222940 */
-    --accent-foreground: oklch(0.929 0.021 271.2); /* #E2E7F6 */
+    --background: oklch(0.155 0.02 266);           /* #080B15 */
+    --foreground: oklch(0.945 0.006 266);
+    --card: oklch(0.205 0.022 266);                /* #101624 */
+    --card-foreground: oklch(0.945 0.006 266);
+    --popover: oklch(0.19 0.022 266);
+    --popover-foreground: oklch(0.945 0.006 266);
+    --primary: oklch(0.745 0.135 268);             /* #8FA6FF */
+    --primary-foreground: oklch(0.16 0.04 270);
+    --secondary: oklch(0.255 0.028 266);
+    --secondary-foreground: oklch(0.94 0.008 266);
+    --muted: oklch(0.25 0.024 266);
+    --muted-foreground: oklch(0.715 0.022 266);
+    --accent: oklch(0.28 0.04 266);
+    --accent-foreground: oklch(0.93 0.015 266);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.610 0.182 270.3);              /* #5B77EF */
+    --border: oklch(1 0 0 / 9%);
+    --input: oklch(1 0 0 / 14%);
+    --ring: oklch(0.62 0.16 268);
     --chart-1: #8ca3f8;
     --chart-2: #a79bf9;
     --chart-3: #4dd0c0;
     --chart-4: #8fb2f5;
     --chart-5: #94a3b8;
-    --sidebar: oklch(0.212 0.028 271.6);           /* #141826 */
-    --sidebar-foreground: oklch(0.941 0.010 273.4);
-    --sidebar-primary: oklch(0.733 0.126 271.5);
-    --sidebar-primary-foreground: oklch(0.200 0.065 272.6);
-    --sidebar-accent: oklch(0.295 0.049 270.2);    /* #232B45 */
-    --sidebar-accent-foreground: oklch(0.929 0.021 271.2);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.610 0.182 270.3);
+    --sidebar: oklch(0.175 0.02 266);              /* #0B0F1B */
+    --sidebar-foreground: oklch(0.945 0.006 266);
+    --sidebar-primary: oklch(0.745 0.135 268);
+    --sidebar-primary-foreground: oklch(0.16 0.04 270);
+    --sidebar-accent: oklch(0.26 0.03 266);
+    --sidebar-accent-foreground: oklch(0.93 0.015 266);
+    --sidebar-border: oklch(1 0 0 / 8%);
+    --sidebar-ring: oklch(0.62 0.16 268);
+
+    --brand-cyan: oklch(0.82 0.13 200);
+    --brand-violet: oklch(0.75 0.16 295);
+    --brand-amber: oklch(0.85 0.14 80);
+    --card-glow: 0 1px 0 rgb(255 255 255 / 0.045) inset, 0 22px 44px -26px rgb(0 0 0 / 0.8);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground antialiased;
-    }
+  }
   html {
     @apply font-sans;
-    }
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading tracking-tight;
+    text-wrap: balance;
+  }
   /* 文本选区使用品牌色，保持「研究所蓝」在交互细节中的存在感 */
   ::selection {
-    background-color: color-mix(in oklch, var(--primary) 25%, transparent);
+    background-color: color-mix(in oklch, var(--primary) 26%, transparent);
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* 细窄滚动条：数据页表多，滚动条不能抢视觉 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+    background-color: color-mix(in oklch, var(--foreground) 18%, transparent);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklch, var(--foreground) 30%, transparent);
+  }
+}
+
+@layer components {
+  /* 页面背景的科研网格：极淡的 1px 线，配合径向渐变做「无边界」效果 */
+  .lab-grid {
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in oklch, var(--foreground) 6%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklch, var(--foreground) 6%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 64px 64px;
+  }
+
+  /* 玻璃面板：筛选栏、统计摘要等「次级容器」共用 */
+  .panel {
+    border: 1px solid color-mix(in oklch, var(--border) 82%, transparent);
+    border-radius: calc(var(--radius) * 1.25);
+    background: color-mix(in oklch, var(--card) 78%, transparent);
+    box-shadow: var(--card-glow);
+    backdrop-filter: blur(14px) saturate(1.05);
+  }
+
+  /* 主按钮的顶部高光 + 品牌色外发光，比纯色按钮更有「实体感」 */
+  .gradient-primary {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--primary) 88%, white),
+      var(--primary)
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.22),
+      0 8px 20px -12px color-mix(in oklch, var(--primary) 70%, transparent);
+  }
+  .dark .gradient-primary {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--primary) 92%, white),
+      color-mix(in oklch, var(--primary) 92%, black)
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.3),
+      0 10px 24px -14px color-mix(in oklch, var(--primary) 80%, transparent);
+  }
+
+  .text-gradient {
+    background-image: linear-gradient(
+      115deg,
+      var(--foreground) 12%,
+      color-mix(in oklch, var(--primary) 72%, var(--foreground)) 58%,
+      color-mix(in oklch, var(--brand-cyan) 80%, var(--foreground))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* 首屏 / 详情页顶部的装饰光带 */
+  .glow-line {
+    background-image: linear-gradient(
+      90deg,
+      var(--primary),
+      var(--brand-cyan) 55%,
+      transparent
+    );
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+.page-in {
+  animation: page-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.drawer-in {
+  animation: drawer-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-in,
+  .drawer-in {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
   }
 }

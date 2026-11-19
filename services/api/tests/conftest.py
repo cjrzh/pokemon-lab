@@ -47,6 +47,7 @@ async def var_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncItera
 @pytest_asyncio.fixture
 async def data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[Path]:
     """指向临时目录并复制仓库根的克制表；重置 type_chart 单例缓存。"""
+    from app.domain.battle_class import reset_battle_class_cache
     from app.services.type_chart_service import reset_type_chart_cache
 
     target = tmp_path / "data"
@@ -64,14 +65,35 @@ async def data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
     if cases.exists():
         shutil.copy(cases, target / "type-chart.cases.json")
 
+    # 对战分类清单（图鉴列表的分类筛选要用；缺失时接口会降级为「全部普通」）
+    for name in ("battle-classes.json",):
+        source_file = _REPO_DATA_DIR / name
+        if source_file.exists():
+            shutil.copy(source_file, target / name)
+
+    # 形态 → Showdown 名称映射（建队导出 / 形态选择要用）
+    for name in ("zh-hans.json", "showdown.json"):
+        source_file = _REPO_DATA_DIR / "forms" / name
+        if source_file.exists():
+            (target / "forms").mkdir(parents=True, exist_ok=True)
+            shutil.copy(source_file, target / "forms" / name)
+
+    # 特性译文（形态独有特性的中文名 / 说明靠它兜底）
+    abilities_zh = _REPO_DATA_DIR / "flavor-zh" / "abilities-zh.json"
+    if abilities_zh.exists():
+        (target / "flavor-zh").mkdir(parents=True, exist_ok=True)
+        shutil.copy(abilities_zh, target / "flavor-zh" / "abilities-zh.json")
+
     monkeypatch.setenv("POKEMON_LAB_DATA_DIR", str(target))
 
     get_settings.cache_clear()
     reset_type_chart_cache()
+    reset_battle_class_cache()
 
     yield target
 
     reset_type_chart_cache()
+    reset_battle_class_cache()
     get_settings.cache_clear()
 
 

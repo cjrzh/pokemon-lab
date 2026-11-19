@@ -59,6 +59,8 @@ export function ShowdownExport({
       renderShowdown(draft, {
         tradePrefix: format.trade_prefix,
         includeTera: format.key === 'sv',
+        // 剑盾格式不输出 Language 行
+        includeLanguage: format.key !== 'swsh',
       }),
     [draft, format],
   )
@@ -107,7 +109,7 @@ export function ShowdownExport({
   }, [profile.moves])
 
   return (
-    <div className="rounded-lg border p-3">
+    <div className="rounded-2xl border border-border/70 bg-card/50 p-3.5 shadow-[var(--card-glow)]">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <p className="flex items-center gap-1.5 text-xs font-medium">
           <Terminal aria-hidden="true" className="size-3.5 text-primary" />

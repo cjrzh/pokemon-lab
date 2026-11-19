@@ -96,12 +96,12 @@ export function MovesPage() {
         }
       />
 
-      <div className="mb-4 space-y-2.5 rounded-xl border bg-card/60 p-3 shadow-sm">
+      <div className="panel mb-4 space-y-2.5 p-3.5">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-56 flex-1">
             <Search
               aria-hidden="true"
-              className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+              className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
             <Input
               value={search}
@@ -110,7 +110,7 @@ export function MovesPage() {
                 setPage(1)
               }}
               placeholder="搜索招式名、英文名或说明…"
-              className="h-9 pl-8"
+              className="h-10 pl-9"
               aria-label="搜索招式"
             />
             {search ? (
@@ -300,11 +300,11 @@ export function MovesPage() {
 
 function MoveRows({ items }: { items: MoveSummary[] }) {
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card">
+    <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-[var(--card-glow)]">
       <table className="w-full min-w-[46rem] border-collapse text-sm">
         <caption className="sr-only">招式列表：名称、属性、分类、威力、命中、PP 与学习者数量</caption>
         <thead>
-          <tr className="border-b bg-muted/40 text-left text-[11px] text-muted-foreground">
+          <tr className="border-b border-border/60 bg-muted/45 text-left text-[10px] tracking-wide text-muted-foreground">
             <th scope="col" className="py-2 pl-3 font-medium">招式</th>
             <th scope="col" className="w-20 py-2 pr-2 font-medium">属性</th>
             <th scope="col" className="w-16 py-2 pr-2 font-medium">分类</th>
@@ -316,7 +316,7 @@ function MoveRows({ items }: { items: MoveSummary[] }) {
         </thead>
         <tbody>
           {items.map((move) => (
-            <tr key={move.name} className="group border-b last:border-b-0 hover:bg-muted/40">
+            <tr key={move.name} className="group border-b border-border/50 transition-colors last:border-b-0 hover:bg-primary/[0.045]">
               <td className="max-w-80 py-1.5 pl-3">
                 <Link to={`/moves/${move.name}`} className="block min-w-0">
                   <span className="flex items-center gap-1.5 font-medium group-hover:text-primary">

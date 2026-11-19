@@ -17,7 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
-from app.db.engine import dispose_engine, init_db
+from app.db.engine import dispose_engine, init_db, session_scope
+from app.services import tournament_service, usage_sync_service
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,14 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     await init_db()
     logger.info("数据库就绪：%s", settings.database_path)
+
+    # 后台同步任务随上一个进程消失：把残留的 running 记录收尾，
+    # 否则前端会一直转圈，且新同步会被「已有任务在运行」挡住。
+    async with session_scope() as session:
+        recovered = await usage_sync_service.mark_interrupted_runs(session)
+        recovered += await tournament_service.mark_interrupted_runs(session)
+    if recovered:
+        logger.warning("收尾了 %s 个因重启中断的同步任务", recovered)
 
     try:
         yield
@@ -57,7 +66,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Accept", "X-Owner-Key"],
+        allow_headers=["Content-Type", "Accept"],
         expose_headers=["X-Cache"],
     )
 

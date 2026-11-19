@@ -8,7 +8,21 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import abilities, admin, doubles, health, moves, pokemon, types, usage_ranking
+from app.api.v1 import (
+    abilities,
+    admin,
+    doubles,
+    health,
+    items,
+    moves,
+    pokemon,
+    quiz,
+    teams,
+    tournaments,
+    types,
+    usage_history,
+    usage_ranking,
+)
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -18,5 +32,10 @@ api_router.include_router(pokemon.router)
 api_router.include_router(doubles.router)
 api_router.include_router(abilities.router)
 api_router.include_router(moves.router)
+api_router.include_router(items.router)
+api_router.include_router(teams.router)
+api_router.include_router(quiz.router)
 api_router.include_router(usage_ranking.router)
+api_router.include_router(usage_history.router)
+api_router.include_router(tournaments.router)
 api_router.include_router(admin.router)

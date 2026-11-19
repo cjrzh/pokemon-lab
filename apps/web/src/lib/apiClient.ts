@@ -1,16 +1,13 @@
 /**
  * API 客户端
  *
- * 统一处理四件事，避免每个页面组件各写一遍：
+ * 统一处理三件事，避免每个页面组件各写一遍：
  *   1. 超时（AbortController + setTimeout，默认 10s）
  *   2. 失败分类（超时 / 网络不可达 / HTTP 错误 / 响应无法解析 / 主动取消）
- *   3. 身份注入（X-Owner-Key）
- *   4. 返回值的空响应与 JSON 兼容
+ *   3. 返回值的空响应与 JSON 兼容
  *
  * 外部 API（PokéAPI）的超时、重试与缓存由后端负责，前端只面对自己的后端。
  */
-
-import { OWNER_KEY_HEADER, getOwnerKey } from './ownerKey'
 
 export type ApiErrorKind = 'timeout' | 'network' | 'http' | 'parse' | 'aborted' | 'unknown'
 
@@ -140,7 +137,6 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        [OWNER_KEY_HEADER]: getOwnerKey(),
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...headers,
       },
@@ -198,4 +194,116 @@ export function describeApiError(error: unknown): string {
     return error.message
   }
   return '发生未知错误'
+}
+
+// ---------------------------- SSE（流式） ----------------------------
+
+export interface StreamOptions {
+  method?: 'GET' | 'POST'
+  body?: unknown
+  signal?: AbortSignal
+  /** 连接超时秒数（只约束「迟迟没有任何数据」；有数据在流动就继续等）。 */
+  idleTimeoutMs?: number
+  headers?: Record<string, string>
+}
+
+/**
+ * 读取一个 SSE 响应，把每个 `data: {...}` 事件交给 `onEvent`。
+ *
+ * 与 `apiRequest` 的区别：**没有总时长上限**。LLM 生成一段回答可能要几十秒，
+ * 而 10 秒的普通请求超时必然失败。这里只约束「多久没收到任何字节」，
+ * 只要服务端还在推增量就一直读下去。
+ */
+export async function streamSse(
+  path: string,
+  onEvent: (event: Record<string, unknown>) => void,
+  options: StreamOptions = {},
+): Promise<void> {
+  const {
+    method = 'POST',
+    body,
+    signal,
+    idleTimeoutMs = 90_000,
+    headers,
+  } = options
+  const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+
+  const controller = new AbortController()
+  let idleTimer: ReturnType<typeof setTimeout> | undefined
+  const resetIdle = () => {
+    if (idleTimer) clearTimeout(idleTimer)
+    idleTimer = setTimeout(() => controller.abort(), idleTimeoutMs)
+  }
+  const forwardAbort = () => controller.abort()
+  signal?.addEventListener('abort', forwardAbort)
+  resetIdle()
+
+  try {
+    const response = await fetch(url, {
+      method,
+      signal: controller.signal,
+      headers: {
+        Accept: 'text/event-stream',
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...headers,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      throw new ApiError({
+        kind: 'http',
+        url,
+        status: response.status,
+        detail: await readErrorDetail(response),
+      })
+    }
+    if (!response.body) {
+      throw new ApiError({ kind: 'parse', url, detail: '响应没有可读取的流' })
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      resetIdle()
+      buffer += decoder.decode(value, { stream: true })
+
+      // SSE 事件以空行分隔；同时兼容 \r\n
+      let boundary = buffer.search(/\r?\n\r?\n/)
+      while (boundary !== -1) {
+        const raw = buffer.slice(0, boundary)
+        buffer = buffer.slice(boundary + (buffer[boundary] === '\r' ? 4 : 2))
+        const data = raw
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith('data:'))
+          .map((line) => line.slice(5).trim())
+          .join('\n')
+        if (data) {
+          try {
+            onEvent(JSON.parse(data) as Record<string, unknown>)
+          } catch {
+            // 单条事件坏了不影响后续；服务端若整体失败会另发 error 事件
+          }
+        }
+        boundary = buffer.search(/\r?\n\r?\n/)
+      }
+    }
+  } catch (error) {
+    if (error instanceof ApiError) throw error
+    if (isAbortError(error)) {
+      throw new ApiError({ kind: signal?.aborted ? 'aborted' : 'timeout', url })
+    }
+    throw new ApiError({
+      kind: 'network',
+      url,
+      detail: error instanceof Error ? error.message : String(error),
+    })
+  } finally {
+    if (idleTimer) clearTimeout(idleTimer)
+    signal?.removeEventListener('abort', forwardAbort)
+  }
 }

@@ -48,6 +48,30 @@ uv run python scripts/sync_pokeapi.py --force      # 覆盖手动编辑过的记
 - 克制接口：`GET /api/v1/types`（完整克制表）、`POST /api/v1/types/evaluate`（倍率计算）、
   `POST /api/v1/types/reverse`（谁克我）。
 - 图鉴公开接口（只读）：`GET /api/v1/pokemon`（分页/搜索/筛选）、`GET /api/v1/pokemon/{dex}`。
+  `battle_class` 参数按对战分类筛选（`normal` / `pseudo_legendary` / `restricted` /
+  `sub_legendary` / `mythical` / `paradox`），响应同时带各分类计数。
+- 建队接口：`GET/POST /api/v1/teams`、`PUT/DELETE /api/v1/teams/{id}`、
+  `GET /api/v1/teams/{id}/showdown`（导出）、`PUT /api/v1/teams/order`（保存拖拽顺序）、
+  `POST /api/v1/teams/import`（导入）、
+  `POST /api/v1/teams/batch`（批量改闪光 / 等级 / 性别）—— 后两者都不落库；
+  `POST /api/v1/teams/analyze`（队伍评价，草稿不落库）、
+  `POST /api/v1/teams/{id}/analyze`（评价并保存到队伍；`?use_llm=false` 只算数据）。
+  以上两个各有一个 `/stream` 变体（SSE 流式，先推计算结果再逐段推 AI 正文）——
+  模型是推理模型，一次回答要 10–50 秒，流式才不会撞上前端 10 秒超时；
+  `GET /api/v1/pokemon/{dex}/team-options`。
+- 历史使用率（Smogon）：`GET /api/v1/usage`（月份 / 格式 / 等级线查询）、
+  `POST /api/v1/usage/sync`（后台增量同步）、`GET /api/v1/usage/sync/{id}`（进度）、
+  `GET /api/v1/usage/sync/latest`、`POST /api/v1/usage/sync/{id}/cancel`。
+- 官方赛事（Limitless VGC）：`GET /api/v1/tournaments`（规则 / 类型 / 年份 / 搜索）、
+  `GET /api/v1/tournaments/{id}`（名次 + 队表 + 赛事使用率）、
+  `GET /api/v1/tournaments/{id}/teams/{team_id}`（一键建队草稿，不落库）、
+  `POST /api/v1/tournaments/sync`（后台增量同步）、`GET /api/v1/tournaments/sync/{id}`、
+  `GET /api/v1/tournaments/sync/latest`、`POST /api/v1/tournaments/sync/{id}/cancel`。
+- 形态招式：`scripts/sync_form_moves.py`（回填 `pokemon_form_move`；队伍校验按编号
+  合并形态专属招式 / 特性，如连击流的水流连打、蕾冠王的人马一体）。
+- 出卷接口：`POST /api/v1/quiz`（按世代 / 编号区间出卷，随机或全量）、
+  `GET /api/v1/quiz/{id}`、`POST /api/v1/quiz/{id}/answer`（中英文名判分）、
+  `GET /api/v1/quiz/mistakes`、`DELETE /api/v1/quiz/mistakes[/{dex}]`。
 - 管理接口（写操作，本地使用无认证）：`POST /api/v1/admin/pokemon/sync`、
   `GET /api/v1/admin/pokemon/sync/status`、`PUT /api/v1/admin/pokemon/{dex}`、
   `POST /api/v1/admin/pokemon`、`GET /api/v1/admin/ops`。

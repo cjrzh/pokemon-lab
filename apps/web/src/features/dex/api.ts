@@ -30,8 +30,41 @@ export interface PokemonSummary {
   sprite_url?: string | null
   is_legendary: boolean
   is_mythical: boolean
+  /** 对战分类键：normal / pseudo_legendary / restricted / sub_legendary / mythical / paradox。 */
+  battle_class: BattleClass
+  battle_class_zh: string
   abilities: PokemonListAbility[]
   is_demo: boolean
+}
+
+/** 对战分类（与后端 `domain/battle_class.py` 一致）。 */
+export const BATTLE_CLASSES = [
+  'normal',
+  'pseudo_legendary',
+  'restricted',
+  'sub_legendary',
+  'mythical',
+  'paradox',
+] as const
+export type BattleClass = (typeof BATTLE_CLASSES)[number]
+
+export const BATTLE_CLASS_LABEL: Record<BattleClass, string> = {
+  normal: '普通',
+  pseudo_legendary: '准神',
+  restricted: '一级神',
+  sub_legendary: '二级神',
+  mythical: '幻兽',
+  paradox: '悖谬',
+}
+
+/** 分类的简称（卡片徽章用，避免过长）。 */
+export const BATTLE_CLASS_SHORT: Record<BattleClass, string> = {
+  normal: '普通',
+  pseudo_legendary: '准神',
+  restricted: '一级神',
+  sub_legendary: '二级神',
+  mythical: '幻兽',
+  paradox: '悖谬',
 }
 
 export interface PokemonListMeta {
@@ -44,6 +77,8 @@ export interface PokemonListMeta {
 export interface PokemonListResponse {
   items: PokemonSummary[]
   meta: PokemonListMeta
+  /** 各分类数量（不受其它筛选条件影响）。 */
+  battle_class_counts?: Partial<Record<BattleClass, number>>
 }
 
 export interface PokemonAbility {
@@ -102,6 +137,39 @@ export interface PokemonNeighbor {
   name_en: string
 }
 
+/** 形态切换菜单项（默认形态与其它形态都在里面）。 */
+export interface PokemonFormSummary {
+  name: string
+  label: string
+  zh: string | null
+  name_en: string | null
+  types: string[]
+  is_default: boolean
+  sprite_url: string | null
+}
+
+/** 单个形态的完整信息（属性 / 种族值 / 特性 / 身高体重 / 立绘）。 */
+export interface PokemonFormDetail {
+  dex_number: number
+  name: string
+  label: string
+  zh: string | null
+  name_en: string | null
+  types: string[]
+  stats: Record<string, number>
+  total_stats: number | null
+  abilities: PokemonAbility[]
+  height_dm: number | null
+  weight_hg: number | null
+  artwork_url: string | null
+  artwork_fallback_url: string | null
+  sprite_url: string | null
+  is_default: boolean
+}
+
+/** 默认形态在 URL 里使用的伪 slug。 */
+export const DEFAULT_FORM_NAME = 'default'
+
 export interface PokemonDetail {
   dex_number: number
   name_en: string
@@ -117,6 +185,9 @@ export interface PokemonDetail {
   }
   moves: PokemonMoves
 
+  /** 形态切换菜单；只有一个形态时为空数组。 */
+  forms?: PokemonFormSummary[]
+
   genus_zh: string | null
   genus_en: string | null
   flavor_zh: string | null
@@ -129,6 +200,9 @@ export interface PokemonDetail {
   is_legendary: boolean
   is_mythical: boolean
   is_baby: boolean
+  /** 对战分类（与列表同一套规则）。 */
+  battle_class: BattleClass
+  battle_class_zh: string
   gender_rate: number | null
   capture_rate: number | null
   base_happiness: number | null
@@ -154,8 +228,12 @@ export interface PokemonListParams {
   page?: number
   page_size?: number
   q?: string
+  /** `true` 时 `q` 按前缀匹配（建队选择器用）；默认子串匹配。 */
+  prefix?: boolean
   type?: string
   generation?: number
+  /** 对战分类筛选。 */
+  battle_class?: BattleClass
   /** 排序：编号升 / 降序，种族值合计升 / 降序（后端在筛选之后排序）。 */
   sort?: DexSort
 }
@@ -168,8 +246,10 @@ export function fetchPokemonList(
   if (params.page) search.set('page', String(params.page))
   if (params.page_size) search.set('page_size', String(params.page_size))
   if (params.q) search.set('q', params.q)
+  if (params.prefix) search.set('prefix', 'true')
   if (params.type) search.set('type', params.type)
   if (params.generation) search.set('generation', String(params.generation))
+  if (params.battle_class) search.set('battle_class', params.battle_class)
   if (params.sort) search.set('sort', params.sort)
   const qs = search.toString()
   return apiRequest<PokemonListResponse>(`/pokemon${qs ? `?${qs}` : ''}`, { signal })
@@ -180,6 +260,15 @@ export function fetchPokemonDetail(
   signal?: AbortSignal,
 ): Promise<PokemonDetail> {
   return apiRequest<PokemonDetail>(`/pokemon/${dexNumber}`, { signal })
+}
+
+/** 某个形态的详情；默认形态传 `DEFAULT_FORM_NAME`。 */
+export function fetchPokemonForm(
+  dexNumber: number,
+  formName: string,
+  signal?: AbortSignal,
+): Promise<PokemonFormDetail> {
+  return apiRequest<PokemonFormDetail>(`/pokemon/${dexNumber}/forms/${formName}`, { signal })
 }
 
 /**

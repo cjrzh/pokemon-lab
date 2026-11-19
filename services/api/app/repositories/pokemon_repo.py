@@ -11,15 +11,19 @@ import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import Select, case, func, select
+from sqlalchemy import Select, and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import (
     Ability,
     AdminOpLog,
+    ItemReference,
     MoveLearner,
     MoveReference,
     Pokemon,
+    PokemonForm,
+    PokemonFormMove,
+    QuizMistake,
 )
 from app.domain.pokemon_parser import DAMAGE_CLASS_ZH
 
@@ -34,6 +38,13 @@ class PokemonListQuery:
     sort: str = "dex"  # dex / dex_desc / total_stats / total_stats_asc
     page: int = 1  # 从 1 起
     page_size: int = 20
+    #: True 时 `search` 按前缀匹配（`喷火` → 喷火龙），否则按子串匹配（`火龙` 也能命中）。
+    #: 图鉴页保留子串（用户可能只记得名字中段）；建队选择器用前缀（输入更短、结果更准）。
+    prefix: bool = False
+    #: 对战分类筛选（normal / pseudo_legendary / restricted / sub_legendary /
+    #: mythical / paradox）。分类由 `domain/battle_class.py` 按名字 + 传说/幻兽字段推导，
+    #: 不是 pokemon 表里的列 —— 所以筛选在路由层过滤，见 `filter_by_battle_class`。
+    battle_class: str | None = None
 
 
 #: 排序字段白名单（路由用它校验，仓储按此分支）。
@@ -71,14 +82,20 @@ class PokemonPage:
         return max(1, -(-self.total // self.page_size))
 
 
+def _escape_like(raw: str) -> str:
+    """转义 LIKE 通配符，避免用户输入的 `%` / `_` 被当成模式。"""
+    return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def _apply_filters(stmt: Select, query: PokemonListQuery) -> Select:
     if query.search:
         raw = query.search.strip()
-        keyword = f"%{raw.lower()}%"
-        condition = func.lower(Pokemon.name_en).like(keyword) | func.ifnull(
+        escaped = _escape_like(raw.lower())
+        pattern = f"{escaped}%" if query.prefix else f"%{escaped}%"
+        condition = func.lower(Pokemon.name_en).like(pattern, escape="\\") | func.ifnull(
             Pokemon.name_zh, ""
-        ).like(keyword)
-        # 纯数字输入按图鉴编号精确匹配（如「025」「25」）；同时保留名称子串匹配。
+        ).like(pattern, escape="\\")
+        # 纯数字输入按图鉴编号精确匹配（如「025」「25」）；同时保留名称匹配。
         if raw.isdigit():
             condition = condition | (Pokemon.dex_number == int(raw))
         stmt = stmt.where(condition)
@@ -87,7 +104,45 @@ def _apply_filters(stmt: Select, query: PokemonListQuery) -> Select:
         stmt = stmt.where(Pokemon.types_json.like(f'%"{query.type_filter}"%'))
     if query.generation is not None:
         stmt = stmt.where(Pokemon.generation_introduced == query.generation)
+    if query.battle_class:
+        stmt = stmt.where(battle_class_condition(query.battle_class))
     return stmt
+
+
+def battle_class_condition(battle_class: str):
+    """把对战分类翻译成 SQL 条件（让筛选、分页、排序在同一语句里完成）。
+
+    分类的判定顺序见 `domain/battle_class.py`：悖谬 > 幻兽 > 一级神 > 二级神 > 准神 > 普通。
+    这里按「互斥」翻译 —— 每个分类都排除了优先级更高的分类，避免一只能在多档里重复出现。
+    """
+    from app.domain.battle_class import BATTLE_CLASS_KEYS, load_battle_classes
+
+    if battle_class not in BATTLE_CLASS_KEYS:
+        raise ValueError(f"未知对战分类：{battle_class}")
+
+    table = load_battle_classes()
+    paradox = list(table.paradox)
+    restricted = list(table.restricted)
+    pseudo = list(table.pseudo_legendary)
+
+    is_paradox = func.lower(Pokemon.name_en).in_(paradox)
+    is_mythical = Pokemon.is_mythical.is_(True)
+    is_restricted = func.lower(Pokemon.name_en).in_(restricted)
+    is_legendary = Pokemon.is_legendary.is_(True)
+    is_pseudo = func.lower(Pokemon.name_en).in_(pseudo)
+
+    if battle_class == "paradox":
+        return is_paradox
+    if battle_class == "mythical":
+        return and_(is_mythical, ~is_paradox)
+    if battle_class == "restricted":
+        return and_(is_restricted, ~is_paradox, ~is_mythical)
+    if battle_class == "sub_legendary":
+        return and_(is_legendary, ~is_restricted, ~is_paradox, ~is_mythical)
+    if battle_class == "pseudo_legendary":
+        return and_(is_pseudo, ~is_legendary, ~is_mythical, ~is_paradox)
+    # normal：排除以上全部
+    return and_(~is_paradox, ~is_mythical, ~is_restricted, ~is_legendary, ~is_pseudo)
 
 
 async def list_pokemon(session: AsyncSession, query: PokemonListQuery) -> PokemonPage:
@@ -125,6 +180,22 @@ async def get_name_rows(session: AsyncSession) -> list[tuple[str, int]]:
     """全部 (name_en, dex_number)，供 Showdown 名称映射使用。"""
     rows = (await session.execute(select(Pokemon.name_en, Pokemon.dex_number))).all()
     return [(name, dex) for name, dex in rows]
+
+
+async def battle_class_counts(session: AsyncSession) -> dict[str, int]:
+    """各对战分类的数量（用于图鉴页筛选条上的计数）。
+
+    分类规则是纯函数，这里一次取出 (name_en, 传说, 幻兽) 在内存里统计 ——
+    1025 行、每行三个字段，比把整套判定翻译成 SQL 更容易保持一致。
+    """
+    from app.domain.battle_class import counts_for
+
+    rows = (
+        await session.execute(
+            select(Pokemon.name_en, Pokemon.is_legendary, Pokemon.is_mythical)
+        )
+    ).all()
+    return dict(counts_for([(name, legendary, mythical) for name, legendary, mythical in rows]))
 
 
 async def get_zh_names(session: AsyncSession, dex_numbers: list[int]) -> dict[int, str | None]:
@@ -281,6 +352,16 @@ def _move_ref_fields(move: dict) -> dict:
     }
 
 
+async def get_move_ref_names(session: AsyncSession, names: list[str]) -> set[str]:
+    """已存在于 move_ref 的招式名（回填脚本用来筛出缺失项）。"""
+    if not names:
+        return set()
+    rows = (
+        await session.execute(select(MoveReference.name).where(MoveReference.name.in_(set(names))))
+    ).all()
+    return {name for (name,) in rows}
+
+
 async def get_move_refs(session: AsyncSession, names: list[str]) -> dict[str, dict]:
     """按名称取招式参考数据（详情接口用）。"""
     if not names:
@@ -430,6 +511,24 @@ async def get_move(session: AsyncSession, name: str) -> MoveReference | None:
     ).scalar_one_or_none()
 
 
+async def list_moves_for_version(
+    session: AsyncSession, version_group: str
+) -> set[str]:
+    """某个版本组里**任意宝可梦**能学会的全部招式（按 `move_learner` 派生表）。
+
+    用于图图犬的「写生」范围：写生可以复制本版本里任何宝可梦学会的招式，
+    因此不需要逐个物种查招式表。
+    """
+    rows = (
+        await session.execute(
+            select(MoveLearner.move_name).where(
+                MoveLearner.methods_key.like(f"%{version_group}:%")
+            )
+        )
+    ).all()
+    return {name for (name,) in rows}
+
+
 async def get_move_learners(session: AsyncSession, name: str) -> list[MoveLearner]:
     stmt = (
         select(MoveLearner)
@@ -441,8 +540,12 @@ async def get_move_learners(session: AsyncSession, name: str) -> list[MoveLearne
 
 async def get_pokemon_briefs(
     session: AsyncSession, dex_numbers: list[int]
-) -> dict[int, tuple[str | None, str, str, bool, bool]]:
-    """批量取学习者的展示信息：dex → (中文名, 英文名, types_json, 传说, 幻之)。"""
+) -> dict[int, tuple[str | None, str, str, bool, bool, str | None]]:
+    """批量取学习者的展示信息：dex → (中文名, 英文名, types_json, 传说, 幻之, 小图标路径)。
+
+    `sprite_path` 是本地缓存的相对路径（`media/` 下）；缺失时由调用方回落到
+    远程代理地址，与图鉴列表同一约定。
+    """
     if not dex_numbers:
         return {}
     rows = (
@@ -454,13 +557,141 @@ async def get_pokemon_briefs(
                 Pokemon.types_json,
                 Pokemon.is_legendary,
                 Pokemon.is_mythical,
+                Pokemon.sprite_path,
             ).where(Pokemon.dex_number.in_(set(dex_numbers)))
         )
     ).all()
     return {
-        dex: (name_zh, name_en, types_json, legendary, mythical)
-        for dex, name_zh, name_en, types_json, legendary, mythical in rows
+        dex: (name_zh, name_en, types_json, legendary, mythical, sprite_path)
+        for dex, name_zh, name_en, types_json, legendary, mythical, sprite_path in rows
     }
+
+
+async def get_moves_json_map(
+    session: AsyncSession, dex_numbers: list[int]
+) -> dict[int, str]:
+    """编号 → moves_json（队伍合法性校验用；只取需要的几条，不整表加载）。"""
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(Pokemon.dex_number, Pokemon.moves_json).where(
+                Pokemon.dex_number.in_(set(dex_numbers))
+            )
+        )
+    ).all()
+    return {dex: moves for dex, moves in rows}
+
+
+async def get_abilities_map(
+    session: AsyncSession, dex_numbers: list[int]
+) -> dict[int, str]:
+    """编号 → abilities_json（队伍特性校验用）。"""
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(Pokemon.dex_number, Pokemon.abilities_json).where(
+                Pokemon.dex_number.in_(set(dex_numbers))
+            )
+        )
+    ).all()
+    return {dex: abilities for dex, abilities in rows}
+
+
+async def get_evolution_json_map(
+    session: AsyncSession, dex_numbers: list[int]
+) -> dict[int, str]:
+    """编号 → evolution_json（队伍合法性校验用，找出进化链上的前代）。"""
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(Pokemon.dex_number, Pokemon.evolution_json).where(
+                Pokemon.dex_number.in_(set(dex_numbers))
+            )
+        )
+    ).all()
+    return {dex: evolution for dex, evolution in rows}
+
+
+async def get_gender_rates(
+    session: AsyncSession, dex_numbers: list[int]
+) -> dict[int, int | None]:
+    """编号 → gender_rate（批量设性别时判断合法性）。"""
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(Pokemon.dex_number, Pokemon.gender_rate).where(
+                Pokemon.dex_number.in_(set(dex_numbers))
+            )
+        )
+    ).all()
+    return {dex: rate for dex, rate in rows}
+
+
+@dataclass(frozen=True)
+class ItemListQuery:
+    """道具列表筛选。"""
+
+    search: str | None = None
+    category: str | None = None
+    page: int = 1
+    page_size: int = 50
+
+
+async def list_items(
+    session: AsyncSession, query: ItemListQuery
+) -> tuple[list[ItemReference], int]:
+    """道具列表：名称 / 说明搜索、分类筛选、分页。
+
+    排序：有中文名的按中文名，缺失的落到英文名；同分类内保持稳定。
+    """
+    stmt = select(ItemReference)
+    if query.search:
+        keyword = f"%{query.search.strip().lower()}%"
+        stmt = stmt.where(
+            func.lower(ItemReference.name).like(keyword)
+            | func.lower(func.ifnull(ItemReference.name_en, "")).like(keyword)
+            | func.ifnull(ItemReference.zh, "").like(f"%{query.search.strip()}%")
+            | func.lower(func.ifnull(ItemReference.effect_en, "")).like(keyword)
+        )
+    if query.category:
+        stmt = stmt.where(ItemReference.category == query.category)
+
+    total = (await session.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
+    page = max(1, query.page)
+    page_size = max(1, min(200, query.page_size))
+    stmt = (
+        stmt.order_by(
+            func.ifnull(ItemReference.zh, ItemReference.name).asc(),
+            ItemReference.name.asc(),
+        )
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    items = list((await session.execute(stmt)).scalars().all())
+    return items, total
+
+
+async def get_item_categories(session: AsyncSession) -> list[tuple[str, int]]:
+    """库里实际出现过的道具分类及数量（按数量降序）。"""
+    rows = (
+        await session.execute(
+            select(ItemReference.category, func.count())
+            .where(ItemReference.category.is_not(None))
+            .group_by(ItemReference.category)
+            .order_by(func.count().desc())
+        )
+    ).all()
+    return [(category, count) for category, count in rows if category]
+
+
+async def get_item(session: AsyncSession, name: str) -> ItemReference | None:
+    return (
+        await session.execute(select(ItemReference).where(ItemReference.name == name))
+    ).scalar_one_or_none()
 
 
 async def get_move_type_options(session: AsyncSession) -> list[str]:
@@ -704,3 +935,192 @@ async def update_ability_rating(
     ability.rating_source = "manual"
     await session.flush()
     return ability
+
+
+# ---------------------------------------------------------------------------
+# 出卷：候选题目（只读图鉴的编号 + 名称 + 图片）
+# ---------------------------------------------------------------------------
+
+
+async def quiz_candidates(
+    session: AsyncSession,
+    *,
+    generation: int | None = None,
+    dex_from: int | None = None,
+    dex_to: int | None = None,
+) -> list[tuple[int, str, str | None, str | None, str | None, str | None]]:
+    """出卷候选：dex → (dex, name_en, name_zh, artwork_path, artwork_url, sprite_path)。
+
+    只取有名称的记录（名称是答案，缺了就无法判分）；图片缺失仍然可以出题，
+    页面会显示「暂无图片」而不是跳过 —— 跳过会让「全量」名不副实。
+    """
+    stmt = select(
+        Pokemon.dex_number,
+        Pokemon.name_en,
+        Pokemon.name_zh,
+        Pokemon.artwork_path,
+        Pokemon.artwork_url,
+        Pokemon.sprite_path,
+    ).where(Pokemon.name_en.is_not(None))
+    if generation is not None:
+        stmt = stmt.where(Pokemon.generation_introduced == generation)
+    if dex_from is not None:
+        stmt = stmt.where(Pokemon.dex_number >= dex_from)
+    if dex_to is not None:
+        stmt = stmt.where(Pokemon.dex_number <= dex_to)
+    stmt = stmt.order_by(Pokemon.dex_number.asc())
+    rows = (await session.execute(stmt)).all()
+    return [(dex, en, zh, art, art_url, sprite) for dex, en, zh, art, art_url, sprite in rows]
+
+
+async def get_quiz_rows_by_dex(
+    session: AsyncSession, dex_numbers: list[int]
+) -> dict[int, tuple[str, str | None, str | None, str | None, str | None]]:
+    """批量取判分 / 展示所需字段。
+
+    dex → (name_en, name_zh, artwork_path, artwork_url, sprite_path)。
+    """
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(
+                Pokemon.dex_number,
+                Pokemon.name_en,
+                Pokemon.name_zh,
+                Pokemon.artwork_path,
+                Pokemon.artwork_url,
+                Pokemon.sprite_path,
+            ).where(Pokemon.dex_number.in_(set(dex_numbers)))
+        )
+    ).all()
+    return {dex: (en, zh, art, art_url, sprite) for dex, en, zh, art, art_url, sprite in rows}
+
+
+async def quiz_mistake_rows(
+    session: AsyncSession, dex_numbers: list[int]
+) -> dict[int, QuizMistake]:
+    """按编号取错题记录。"""
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(QuizMistake).where(QuizMistake.dex_number.in_(set(dex_numbers)))
+        )
+    ).scalars().all()
+    return {row.dex_number: row for row in rows}
+
+
+async def get_ability_details_map(session: AsyncSession) -> dict[str, dict]:
+    """特性名 → 参考表里的中文名与说明（形态特性补全用）。
+
+    形态（`pokemon_form.abilities_json`）只存 slug，中文名与说明在图鉴同步时
+    没有写进去；`ability` 参考表才是这些字段的唯一来源。
+    """
+    rows = (
+        await session.execute(
+            select(Ability.name, Ability.zh, Ability.effect_zh, Ability.effect_en)
+        )
+    ).all()
+    return {
+        name: {"zh": zh, "effect_zh": effect_zh, "effect_en": effect_en}
+        for name, zh, effect_zh, effect_en in rows
+    }
+
+
+async def get_form_moves_map(
+    session: AsyncSession, dex_numbers: list[int], version_group: str
+) -> dict[int, list[tuple[str, str]]]:
+    """编号 → [(形态名, 该形态在指定版本组的招式明细 JSON), …]。
+
+    形态专属招式只出现在形态的 `/pokemon/{name}` 响应里（如连击流武道熊师的
+    「水流连打」）；这里按编号与版本组取回，由服务层与主招式表合并。
+    """
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(
+                PokemonFormMove.dex_number,
+                PokemonFormMove.form_name,
+                PokemonFormMove.methods_json,
+            ).where(
+                PokemonFormMove.dex_number.in_(set(dex_numbers)),
+                PokemonFormMove.version_group == version_group,
+            )
+        )
+    ).all()
+    result: dict[int, list[tuple[str, str]]] = {}
+    for dex, form_name, methods in rows:
+        result.setdefault(dex, []).append((form_name, methods))
+    return result
+
+
+async def get_form_abilities_map(
+    session: AsyncSession, dex_numbers: list[int]
+) -> dict[int, list[str]]:
+    """编号 → [该编号下每个形态的 abilities_json]（验证「形态专属特性」用）。"""
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(PokemonForm.dex_number, PokemonForm.abilities_json).where(
+                PokemonForm.dex_number.in_(set(dex_numbers))
+            )
+        )
+    ).all()
+    result: dict[int, list[str]] = {}
+    for dex, abilities in rows:
+        result.setdefault(dex, []).append(abilities)
+    return result
+
+
+async def get_form_name_rows(session: AsyncSession) -> list[tuple[str, int]]:
+    """全部 (形态名, 编号)，供 Showdown 名称映射使用（形态名即 slug）。"""
+    rows = (
+        await session.execute(select(PokemonForm.name, PokemonForm.dex_number))
+    ).all()
+    return [(name, dex) for name, dex in rows]
+
+
+async def get_form_showdown_names(
+    session: AsyncSession, dex_numbers: list[int]
+) -> dict[tuple[int, str], str]:
+    """(图鉴编号, Showdown 名小写) → 本地**非默认**形态 slug。
+
+    已保存队伍只存 Showdown 名；要还原用户当初选的形态，必须用数据库里的
+    `pokemon_form` 判断 —— 映射文件同时包含默认形态，直接反查会把 `Garchomp`
+    还原成 `garchomp`，而后者并不是一个可选的形态（`team-options?form=` 会 422）。
+    """
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(PokemonForm.dex_number, PokemonForm.name).where(
+                PokemonForm.dex_number.in_(set(dex_numbers))
+            )
+        )
+    ).all()
+    from app.services.form_service import load_form_showdown_map
+
+    mapping = load_form_showdown_map()
+    result: dict[tuple[int, str], str] = {}
+    for dex, name in rows:
+        showdown = mapping.get(name)
+        if showdown:
+            result[(dex, showdown.lower())] = name
+    return result
+
+
+async def get_base_names(session: AsyncSession, dex_numbers: list[int]) -> dict[int, str]:
+    """编号 → 默认形态的英文名（`pokemon.name_en`），用于识别「默认形态」。"""
+    if not dex_numbers:
+        return {}
+    rows = (
+        await session.execute(
+            select(Pokemon.dex_number, Pokemon.name_en).where(
+                Pokemon.dex_number.in_(set(dex_numbers))
+            )
+        )
+    ).all()
+    return {dex: name for dex, name in rows}

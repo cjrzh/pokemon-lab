@@ -71,6 +71,35 @@ class Settings(BaseSettings):
     #: 是否在同步时下载立绘。测试默认关闭，避免打真实网络。
     artwork_sync_enabled: bool = True
 
+    #: ---------- LLM（队伍评价，OpenAI 兼容接口） ----------
+    #: 这几个变量沿用 `TELECOM_` 前缀（与 .env 里的既有写法一致），
+    #: 因此用 validation_alias 显式读取，而不是套 POKEMON_LAB_ 前缀。
+    llm_base_url: str | None = Field(
+        default=None, validation_alias="TELECOM_BASE_URL"
+    )
+    llm_api_key: str | None = Field(
+        default=None, validation_alias="TELECOM_API_KEY", repr=False
+    )
+    llm_model: str = Field(
+        default="deepseek-v4.1-flash-new", validation_alias="TELECOM_FLASH_MODEL"
+    )
+    #: 备用模型：主模型失败（超时 / 5xx）时重试一次，仍失败则降级为「无 AI 建议」。
+    llm_fallback_model: str | None = Field(
+        default=None, validation_alias="TELECOM_MAX_MODEL"
+    )
+    llm_enable_thinking: bool = Field(
+        default=False, validation_alias="TELECOM_ENABLE_THINKING"
+    )
+    llm_temperature: float = Field(default=0.5, validation_alias="TELECOM_TEMPERATURE")
+    llm_top_p: float = Field(default=0.8, validation_alias="TELECOM_TOP_P")
+    llm_max_tokens: int = Field(default=800, validation_alias="TELECOM_MAX_TOKENS")
+    llm_timeout_seconds: float = 45.0
+
+    @property
+    def llm_configured(self) -> bool:
+        """有 base_url 与 key 才认为配置可用；否则接口降级为「只给计算结果」。"""
+        return bool(self.llm_base_url and self.llm_api_key)
+
     @field_validator("var_dir", "data_dir", mode="after")
     @classmethod
     def _expand_path(cls, value: Path) -> Path:

@@ -2,7 +2,7 @@
  * 招式详情页测试：数值、学习者链接与版本筛选。
  */
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -30,6 +30,7 @@ const detail: MoveDetail = {
       types: ['grass', 'poison'],
       is_legendary: false,
       is_mythical: false,
+      sprite_url: '/media/sprites/1.png',
       version_groups: {
         'scarlet-violet': [{ method: 'machine', method_label: '招式学习器', level: 0 }],
         'sword-shield': [{ method: 'machine', method_label: '招式学习器', level: 0 }],
@@ -43,6 +44,7 @@ const detail: MoveDetail = {
       types: ['psychic'],
       is_legendary: true,
       is_mythical: false,
+      sprite_url: null,
       version_groups: {
         'sword-shield': [{ method: 'tutor', method_label: '教学', level: 0 }],
       },
@@ -106,5 +108,17 @@ describe('MoveDetailPage', () => {
 
     await userEvent.type(screen.getByRole('textbox', { name: '筛选宝可梦' }), '超梦')
     expect(screen.queryByRole('link', { name: /妙蛙种子/ })).not.toBeInTheDocument()
+  })
+
+  it('学习者带小图标；没有图标时不伪造图片', async () => {
+    renderPage()
+
+    const icon = screen.getByRole('img', { name: '妙蛙种子' })
+    expect(icon).toHaveAttribute('src', '/media/sprites/1.png')
+
+    // 切到剑盾看超梦：sprite_url 为 null，只渲染占位圆点，不出现 img
+    await userEvent.click(screen.getAllByRole('button', { name: /剑／盾/ })[0])
+    const mewtwo = screen.getByRole('link', { name: /超梦/ })
+    expect(within(mewtwo).queryByRole('img')).not.toBeInTheDocument()
   })
 })

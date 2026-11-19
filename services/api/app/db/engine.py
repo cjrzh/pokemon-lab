@@ -96,9 +96,15 @@ async def init_db() -> None:
         # （create_all 只建缺失的表，不会改列，因此先在这里处理旧结构。）
         await _drop_stale_move_learner(conn)
         await conn.run_sync(Base.metadata.create_all)
+        await _drop_unused_owner_key_index(conn)
         await _add_missing_pokemon_columns(conn)
         await _add_missing_doubles_columns(conn)
         await _add_missing_move_columns(conn)
+        await _add_missing_item_columns(conn)
+        await _add_missing_team_columns(conn)
+        await _rebuild_stale_tournament_tables(conn)
+        await _add_missing_tournament_columns(conn)
+        await _add_missing_tournament_member_columns(conn)
 
     async with session_scope() as session:
         existing = (
@@ -192,6 +198,124 @@ async def _add_missing_move_columns(conn) -> None:
         await conn.exec_driver_sql(f'ALTER TABLE move_ref ADD COLUMN "{column}" {definition}')
 
 
+#: 队伍表新增的列 → SQLite 列定义（旧库补齐用）。
+_TEAM_ADDED_COLUMNS: dict[str, str] = {
+    "sort_order": "INTEGER NOT NULL DEFAULT 0",
+    "analysis_json": "TEXT",
+    "analysis_at": "DATETIME",
+    "analysis_members_hash": "VARCHAR(64)",
+}
+
+
+#: 队伍成员表新增的列 → SQLite 列定义（旧库补齐用）。
+_TEAM_MEMBER_ADDED_COLUMNS: dict[str, str] = {
+    "language": "VARCHAR(8) NOT NULL DEFAULT 'CHS'",
+    # 剑盾极巨化等级 0–10；NULL 表示未设置（导出 / 界面按 Showdown 默认值 10 处理）
+    "dynamax_level": "INTEGER",
+    # 超极巨化（剑盾）；旧记录一律视为否
+    "gigantamax": "BOOLEAN NOT NULL DEFAULT 0",
+}
+
+
+#: 道具参考表新增的列 → SQLite 列定义（旧库补齐用）。
+_ITEM_ADDED_COLUMNS: dict[str, str] = {
+    "effect_zh": "TEXT",
+    "effect_zh_source": "VARCHAR(16)",
+}
+
+
+async def _add_missing_item_columns(conn) -> None:
+    """给已存在的 item_ref 表补齐新列（幂等）。"""
+    rows = (await conn.exec_driver_sql("PRAGMA table_info(item_ref)")).fetchall()
+    if not rows:
+        return
+    existing_columns = {row[1] for row in rows}
+    for column, definition in _ITEM_ADDED_COLUMNS.items():
+        if column in existing_columns:
+            continue
+        await conn.exec_driver_sql(f'ALTER TABLE item_ref ADD COLUMN "{column}" {definition}')
+
+
+async def _add_missing_team_columns(conn) -> None:
+    """给已存在的 team / team_member 表补齐新列（幂等）。"""
+    for table, columns in (
+        ("team", _TEAM_ADDED_COLUMNS),
+        ("team_member", _TEAM_MEMBER_ADDED_COLUMNS),
+    ):
+        rows = (await conn.exec_driver_sql(f"PRAGMA table_info({table})")).fetchall()
+        if not rows:
+            continue
+        existing_columns = {row[1] for row in rows}
+        for column, definition in columns.items():
+            if column in existing_columns:
+                continue
+            await conn.exec_driver_sql(
+                f'ALTER TABLE {table} ADD COLUMN "{column}" {definition}'
+            )
+
+
+async def _rebuild_stale_tournament_tables(conn) -> None:
+    """赛事名次 / 队伍表存在并列名次，旧唯一约束（仅按名次）会让早期赛事写入失败。
+
+    这两张表是**从来源页面同步出来的派生数据**，重建后重新同步即可；
+    这里检测到旧约束就直接删表，交给 `create_all` 按新定义建回来。
+    """
+    for table in ("tournament_standing", "tournament_team"):
+        row = (
+            await conn.exec_driver_sql(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,)
+            )
+        ).fetchone()
+        if row is None:
+            continue
+        sql = row[0] or ""
+        if "player" not in sql:
+            await conn.exec_driver_sql(f"DROP TABLE {table}")
+
+
+#: 赛事队伍表新增的列 → SQLite 列定义（旧库补齐用）。
+_TOURNAMENT_TEAM_ADDED_COLUMNS: dict[str, str] = {
+    "validation_json": "TEXT NOT NULL DEFAULT '{}'",
+}
+
+
+async def _add_missing_tournament_columns(conn) -> None:
+    """给已存在的 tournament_team 表补齐新列（幂等）。"""
+    rows = (await conn.exec_driver_sql("PRAGMA table_info(tournament_team)")).fetchall()
+    if not rows:
+        return
+    existing_columns = {row[1] for row in rows}
+    for column, definition in _TOURNAMENT_TEAM_ADDED_COLUMNS.items():
+        if column in existing_columns:
+            continue
+        await conn.exec_driver_sql(
+            f'ALTER TABLE tournament_team ADD COLUMN "{column}" {definition}'
+        )
+
+
+#: 赛事队伍成员表新增的列 → SQLite 列定义（旧库补齐用）。
+#: 超极巨化 / 极巨化等级以前只体现在 Showdown 文本里，现在结构化保存，
+#: 一键建队与页面展示才能拿到同样的信息。
+_TOURNAMENT_MEMBER_ADDED_COLUMNS: dict[str, str] = {
+    "gigantamax": "BOOLEAN NOT NULL DEFAULT 0",
+    "dynamax_level": "INTEGER",
+}
+
+
+async def _add_missing_tournament_member_columns(conn) -> None:
+    """给已存在的 tournament_team_member 表补齐新列（幂等）。"""
+    rows = (await conn.exec_driver_sql("PRAGMA table_info(tournament_team_member)")).fetchall()
+    if not rows:
+        return
+    existing_columns = {row[1] for row in rows}
+    for column, definition in _TOURNAMENT_MEMBER_ADDED_COLUMNS.items():
+        if column in existing_columns:
+            continue
+        await conn.exec_driver_sql(
+            f'ALTER TABLE tournament_team_member ADD COLUMN "{column}" {definition}'
+        )
+
+
 async def _drop_stale_move_learner(conn) -> None:
     """旧结构的 move_learner（缺 version_groups_json）直接删除，交给 create_all 重建。"""
     rows = (await conn.exec_driver_sql("PRAGMA table_info(move_learner)")).fetchall()
@@ -200,6 +324,14 @@ async def _drop_stale_move_learner(conn) -> None:
     columns = {row[1] for row in rows}
     if "version_groups_json" not in columns:
         await conn.exec_driver_sql("DROP TABLE move_learner")
+
+
+async def _drop_unused_owner_key_index(conn) -> None:
+    """取消浏览器隔离后 `team.owner_key` 不再参与查询，旧库上的索引没有用处。
+
+    `owner_key` 列本身保留（兼容旧数据），只清理索引。幂等。
+    """
+    await conn.exec_driver_sql("DROP INDEX IF EXISTS ix_team_owner_key")
 
 
 async def dispose_engine() -> None:

@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom'
 import { ArrowDown, ArrowUp, Crown, Sparkles, Star } from 'lucide-react'
 
 import { abilityDetailLink } from '@/features/abilities/api'
+import { BattleClassBadge } from '@/features/dex/components/BattleClassBadge'
 import { PokemonSprite } from '@/features/dex/components/PokemonSprite'
 import { TypeBadge } from '@/features/dex/components/TypeBadge'
 import { STAT_COLOR, STAT_LABELS, STAT_ORDER } from '@/features/dex/components/stats'
@@ -33,11 +34,11 @@ export function DexListTable({
   onSort?: (sort: DexSort) => void
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card">
+    <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-[var(--card-glow)]">
       <table className="w-full min-w-[46rem] border-collapse text-sm">
         <caption className="sr-only">图鉴列表：编号、名称、属性、种族值与特性</caption>
         <thead>
-          <tr className="border-b bg-muted/40 text-left text-[11px] text-muted-foreground">
+          <tr className="border-b border-border/60 bg-muted/45 text-left text-[10px] tracking-wide text-muted-foreground">
             <SortableHeader
               label="编号"
               active={sort === 'dex' || sort === 'dex_desc'}
@@ -145,15 +146,20 @@ function SortableHeader({
   )
 }
 
+/** 列表行的分类标记（非普通才显示，保持行高稳定）。 */
+function BatchClassMark({ pokemon }: { pokemon: PokemonSummary }) {
+  return <BattleClassBadge battleClass={pokemon.battle_class} />
+}
+
 function DexListRow({ pokemon: p }: { pokemon: PokemonSummary }) {
   const displayName = p.name_zh ?? p.name_en
   return (
-    <tr className="group border-b last:border-b-0 hover:bg-muted/40">
-      <td className="py-1.5 pl-3 text-xs text-muted-foreground tabular-nums">
+    <tr className="group border-b border-border/50 transition-colors last:border-b-0 hover:bg-primary/[0.045]">
+      <td className="py-2 pl-3 text-[11px] text-muted-foreground tabular-nums">
         {String(p.dex_number).padStart(4, '0')}
       </td>
 
-      <td className="max-w-56 py-1.5 pr-3">
+      <td className="max-w-56 py-2 pr-3">
         <Link
           to={`/dex/${p.dex_number}`}
           className="flex min-w-0 items-center gap-1.5 font-medium group-hover:text-primary"
@@ -173,6 +179,7 @@ function DexListRow({ pokemon: p }: { pokemon: PokemonSummary }) {
             <Sparkles aria-label="幻之宝可梦" className="size-3 shrink-0 text-primary" />
           ) : null}
           <span className="truncate">{displayName}</span>
+          <BatchClassMark pokemon={p} />
           <span className="truncate text-[11px] font-normal text-muted-foreground">
             {p.name_en}
           </span>
@@ -184,7 +191,7 @@ function DexListRow({ pokemon: p }: { pokemon: PokemonSummary }) {
         </Link>
       </td>
 
-      <td className="py-1.5 pr-3">
+      <td className="py-2 pr-3">
         <span className="flex flex-wrap gap-1">
           {p.types.map((t) => (
             <TypeBadge key={t} type={t} className="px-1.5 py-0 text-[10px]" />
@@ -198,7 +205,7 @@ function DexListRow({ pokemon: p }: { pokemon: PokemonSummary }) {
           <td
             key={key}
             className={cn(
-              'py-1.5 pr-1 text-right text-xs tabular-nums',
+              'py-2 pr-1 text-right text-xs tabular-nums',
               value == null ? 'text-muted-foreground' : STAT_COLOR[key]?.text,
             )}
           >
@@ -207,11 +214,11 @@ function DexListRow({ pokemon: p }: { pokemon: PokemonSummary }) {
         )
       })}
 
-      <td className="py-1.5 pr-1 text-right text-xs font-semibold tabular-nums">
+      <td className="py-2 pr-1 text-right text-xs font-semibold text-foreground tabular-nums">
         {p.total_stats ?? '—'}
       </td>
 
-      <td className="max-w-56 py-1.5 pr-3">
+      <td className="max-w-56 py-2 pr-3">
         <span className="flex flex-wrap gap-x-1.5 gap-y-0.5 text-[10px]">
           {p.abilities.length === 0 ? (
             <span className="text-muted-foreground">—</span>

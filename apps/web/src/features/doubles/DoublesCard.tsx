@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ItemIcon } from '@/features/dex/components/ItemIcon'
 import { TypeBadge } from '@/features/dex/components/TypeBadge'
 import { resolveMediaUrl } from '@/features/dex/api'
+import { moveDetailLink } from '@/features/moves/api'
 import { describeApiError } from '@/lib/apiClient'
 import { cn } from '@/lib/utils'
 
@@ -213,7 +214,7 @@ function FormatBody({
 
   if (!format.profiles.length) {
     return (
-      <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+      <div className="rounded-2xl border border-dashed border-border/70 bg-card/40 p-6 text-center text-sm text-muted-foreground">
         该格式没有这只宝可梦的统计数据。可能是它不在该作品的可用名单里，
         或出场率低于统计下限。
       </div>
@@ -283,7 +284,7 @@ function ProfileBody({ profile, pointsKind }: { profile: DoublesProfile; pointsK
       </div>
 
       {/* ---------- 推荐配置 ---------- */}
-      <div className="rounded-lg border p-3">
+      <div className="rounded-2xl border border-border/70 bg-card/60 p-3.5 shadow-[var(--card-glow)]">
         <p className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium">
           <Sparkles aria-hidden="true" className="size-3.5 text-primary" />
           推荐配置
@@ -323,7 +324,13 @@ function ProfileBody({ profile, pointsKind }: { profile: DoublesProfile; pointsK
                   {move.type ? (
                     <TypeBadge type={move.type} className="shrink-0 px-1.5 py-0 text-[10px]" />
                   ) : null}
-                  <span className="min-w-0 flex-1 truncate">{move.name}</span>
+                  <Link
+                    to={moveDetailLink(move.slug)}
+                    title={`查看招式详情：${move.name}`}
+                    className="min-w-0 flex-1 truncate underline-offset-2 hover:text-primary hover:underline"
+                  >
+                    {move.name}
+                  </Link>
                   <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                     {formatPct(move.pct)}
                   </span>
@@ -554,30 +561,44 @@ function UsageList({ items }: { items: DoublesUsage[] }) {
   const max = Math.max(...items.map((item) => item.pct))
   return (
     <ul className="space-y-1">
-      {items.map((item) => (
-        <li key={item.slug} className="flex items-center gap-2 text-xs">
-          {/* 招式带属性徽章、道具带图标；两者互斥，样式与招式列表页一致 */}
-          {item.type ? (
-            <TypeBadge type={item.type} className="shrink-0 px-1.5 py-0 text-[10px]" />
-          ) : item.icon_url ? (
-            <ItemIcon
-              src={resolveMediaUrl(item.icon_url)}
-              alt={item.name}
-              className="size-4"
-            />
-          ) : null}
-          <span className="min-w-0 flex-1 truncate">{item.name}</span>
-          <span className="h-1 w-12 shrink-0 overflow-hidden rounded-full bg-muted">
-            <span
-              className="block h-full rounded-full bg-primary/60"
-              style={{ width: `${max > 0 ? (item.pct / max) * 100 : 0}%` }}
-            />
-          </span>
-          <span className="w-12 shrink-0 text-right text-muted-foreground tabular-nums">
-            {formatPct(item.pct)}
-          </span>
-        </li>
-      ))}
+      {items.map((item) => {
+        // 招式可点进详情页；道具没有独立详情页，保持纯文本
+        const isMove = Boolean(item.type)
+        return (
+          <li key={item.slug} className="flex items-center gap-2 text-xs">
+            {/* 招式带属性徽章、道具带图标；两者互斥，样式与招式列表页一致 */}
+            {item.type ? (
+              <TypeBadge type={item.type} className="shrink-0 px-1.5 py-0 text-[10px]" />
+            ) : item.icon_url ? (
+              <ItemIcon
+                src={resolveMediaUrl(item.icon_url)}
+                alt={item.name}
+                className="size-4"
+              />
+            ) : null}
+            {isMove ? (
+              <Link
+                to={moveDetailLink(item.slug)}
+                title={`查看招式详情：${item.name}`}
+                className="min-w-0 flex-1 truncate underline-offset-2 hover:text-primary hover:underline"
+              >
+                {item.name}
+              </Link>
+            ) : (
+              <span className="min-w-0 flex-1 truncate">{item.name}</span>
+            )}
+            <span className="h-1 w-12 shrink-0 overflow-hidden rounded-full bg-muted">
+              <span
+                className="block h-full rounded-full bg-primary/60"
+                style={{ width: `${max > 0 ? (item.pct / max) * 100 : 0}%` }}
+              />
+            </span>
+            <span className="w-12 shrink-0 text-right text-muted-foreground tabular-nums">
+              {formatPct(item.pct)}
+            </span>
+          </li>
+        )
+      })}
     </ul>
   )
 }
@@ -598,7 +619,7 @@ function CollapsibleSection({
   const [open, setOpen] = useState(defaultOpen)
   const empty = count <= 0
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-hidden rounded-2xl border border-border/70">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}

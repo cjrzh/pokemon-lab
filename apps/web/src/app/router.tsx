@@ -5,16 +5,20 @@ import { AppShell } from './layout/AppShell'
 import { AbilitiesPage } from '@/pages/AbilitiesPage'
 import { AdminPokemonPage } from '@/pages/admin/AdminPokemonPage'
 import { AdminSyncPage } from '@/pages/admin/AdminSyncPage'
-import { CollectionPage } from '@/pages/CollectionPage'
 import { DexPage } from '@/pages/DexPage'
-import { ExamPage } from '@/pages/ExamPage'
 import { HomePage } from '@/pages/HomePage'
+import { ItemsPage } from '@/pages/ItemsPage'
 import { MoveDetailPage } from '@/pages/MoveDetailPage'
 import { MovesPage } from '@/pages/MovesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import { NotesPage } from '@/pages/NotesPage'
 import { PokemonDetailPage } from '@/pages/PokemonDetailPage'
+import { QuizPage } from '@/pages/QuizPage'
 import { TypeCalcPage } from '@/pages/TypeCalcPage'
+import { TeamShowdownPage } from '@/pages/TeamShowdownPage'
+import { TournamentDetailPage } from '@/pages/TournamentDetailPage'
+import { TournamentsPage } from '@/pages/TournamentsPage'
+import { TeamsPage } from '@/pages/TeamsPage'
+import { UsageHistoryPage } from '@/pages/UsageHistoryPage'
 import { UsageRankingPage } from '@/pages/UsageRankingPage'
 
 export function AppRouter() {
@@ -28,11 +32,15 @@ export function AppRouter() {
         <Route path="abilities" element={<AbilitiesPage />} />
         <Route path="moves" element={<MovesPage />} />
         <Route path="moves/:moveName" element={<MoveDetailPage />} />
+        <Route path="items" element={<ItemsPage />} />
         <Route path="usage" element={<UsageRankingPage />} />
+        <Route path="usage/history" element={<UsageHistoryPage />} />
+        <Route path="tournaments" element={<TournamentsPage />} />
+        <Route path="tournaments/:tournamentId" element={<TournamentDetailPage />} />
+        <Route path="teams" element={<TeamsPage />} />
+        <Route path="quiz" element={<QuizPage />} />
+        <Route path="teams/:teamId/showdown" element={<TeamShowdownPage />} />
         <Route path="type-calc" element={<TypeCalcPage />} />
-        <Route path="collection" element={<CollectionPage />} />
-        <Route path="notes" element={<NotesPage />} />
-        <Route path="exam" element={<ExamPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 

@@ -1,7 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, apiRequest, describeApiError } from './apiClient'
-import { resetOwnerKeyCache } from './ownerKey'
+import { ApiError, apiRequest, describeApiError, streamSse } from './apiClient'
 
 function jsonResponse(body: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), {
@@ -25,16 +24,11 @@ function hangingFetch() {
 }
 
 describe('apiRequest', () => {
-  beforeEach(() => {
-    window.localStorage.clear()
-    resetOwnerKeyCache()
-  })
-
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('成功时解析 JSON，并注入 X-Owner-Key 请求头', async () => {
+  it('成功时解析 JSON，且不注入身份请求头', async () => {
     let capturedHeaders: HeadersInit | undefined
     vi.stubGlobal(
       'fetch',
@@ -47,7 +41,8 @@ describe('apiRequest', () => {
     const result = await apiRequest<{ status: string }>('/health')
 
     expect(result).toEqual({ status: 'ok', checks: [] })
-    expect(capturedHeaders).toMatchObject({ 'X-Owner-Key': expect.any(String) })
+    // 个人项目不做浏览器隔离：请求不带 X-Owner-Key
+    expect(capturedHeaders).not.toHaveProperty('X-Owner-Key')
   })
 
   it('204 无内容时返回 undefined', async () => {
@@ -132,5 +127,82 @@ describe('describeApiError', () => {
   it('非 Error 值返回兜底文案', () => {
     expect(describeApiError('boom')).toBe('发生未知错误')
     expect(describeApiError(null)).toBe('发生未知错误')
+  })
+})
+describe('streamSse', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  /** 造一个按块吐字节的 ReadableStream，模拟 SSE 分片到达。 */
+  function sseResponse(chunks: string[], init?: ResponseInit): Response {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const chunk of chunks) {
+          controller.enqueue(encoder.encode(chunk))
+        }
+        controller.close()
+      },
+    })
+    return new Response(body, {
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+      ...init,
+    })
+  }
+
+  it('逐条解析 data 事件，跨块分片也能正确拼回', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        sseResponse([
+          'data: {"event": "coverage", "data": {}}\n\n',
+          // 一个事件被拆到两个块里
+          'data: {"event": "del',
+          'ta", "text": "你好"}\n\n',
+          'data: {"event": "done", "text": "你好"}\n\n',
+        ]),
+      ),
+    )
+
+    const events: Record<string, unknown>[] = []
+    await streamSse('/teams/analyze/stream', (event) => events.push(event), {
+      body: { members: [] },
+    })
+
+    expect(events.map((event) => event.event)).toEqual(['coverage', 'delta', 'done'])
+    expect(events[1].text).toBe('你好')
+  })
+
+  it('忽略非 data 行与无法解析的帧', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        sseResponse([
+          ': keep-alive\n\n',
+          'data: not-json\n\n',
+          'data: {"event": "done", "text": ""}\n\n',
+        ]),
+      ),
+    )
+
+    const events: Record<string, unknown>[] = []
+    await streamSse('/x', (event) => events.push(event))
+
+    expect(events).toHaveLength(1)
+    expect(events[0].event).toBe('done')
+  })
+
+  it('HTTP 错误抛出 ApiError（kind=http）', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ detail: '队伍不存在' }), { status: 404 })),
+    )
+
+    await expect(streamSse('/x', () => {})).rejects.toMatchObject({
+      kind: 'http',
+      status: 404,
+    })
   })
 })

@@ -55,6 +55,8 @@ class MoveLearnerPokemon(BaseModel):
     types: list[str] = []
     is_legendary: bool = False
     is_mythical: bool = False
+    #: 96×96 小图标（本地缓存优先，缺失回落到远程代理）——列表里「一眼认出是哪只」
+    sprite_url: str | None = None
     #: 版本组 → 学习方式列表（按版本从新到旧）
     version_groups: dict[str, list[MoveLearnEntry]] = {}
     #: 最近一个版本组里的学习方式（列表页做摘要）

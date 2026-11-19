@@ -22,6 +22,11 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DexGridCard } from '@/features/dex/components/DexGridCard'
 import { DexListTable } from '@/features/dex/components/DexListTable'
+import {
+  BATTLE_CLASSES,
+  BATTLE_CLASS_LABEL,
+  type BattleClass,
+} from '@/features/dex/api'
 import { useDebouncedValue, usePokemonList } from '@/features/dex/hooks'
 import { pageItems, pageRange } from '@/features/dex/pagination'
 import {
@@ -59,6 +64,8 @@ export function DexPage() {
   const [search, setSearch] = useState('')
   const [type, setType] = useState<string>('all')
   const [generation, setGeneration] = useState<string>('all')
+  /** 对战分类筛选：'all' 或某个分类键。 */
+  const [battleClass, setBattleClass] = useState<BattleClass | 'all'>('all')
   const [page, setPage] = useState(1)
 
   // 视图偏好：从 localStorage 初始化（非法值自动回落），改动后写回
@@ -79,15 +86,20 @@ export function DexPage() {
       q: debouncedSearch.trim() || undefined,
       type: type === 'all' ? undefined : type,
       generation: generation === 'all' ? undefined : Number(generation),
+      battle_class: battleClass === 'all' ? undefined : battleClass,
       sort,
     }),
-    [page, pageSize, debouncedSearch, type, generation, sort],
+    [page, pageSize, debouncedSearch, type, generation, battleClass, sort],
   )
   const list = usePokemonList(params)
 
   const totalPages = list.data?.meta.total_pages ?? 1
   const total = list.data?.meta.total ?? 0
-  const hasFilters = type !== 'all' || generation !== 'all' || search.trim().length > 0
+  const hasFilters =
+    type !== 'all' ||
+    generation !== 'all' ||
+    battleClass !== 'all' ||
+    search.trim().length > 0
   const activeType = TYPES.find((item) => item.name === type)
 
   /** 切换视图 / 密度后回到第 1 页：每页条数变了，旧页码没有意义。 */
@@ -107,6 +119,7 @@ export function DexPage() {
     setSearch('')
     setType('all')
     setGeneration('all')
+    setBattleClass('all')
     setPage(1)
   }
 
@@ -129,12 +142,12 @@ export function DexPage() {
       />
 
       {/* ---------- 搜索与筛选：一张控制卡，搜索 / 世代 / 属性在同一视觉层级 ---------- */}
-      <div className="mb-5 rounded-xl border bg-card/60 p-3 shadow-sm sm:p-3.5">
+      <div className="panel mb-5 p-3.5 sm:p-4">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-56 flex-1">
             <Search
               aria-hidden="true"
-              className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+              className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
             <Input
               value={search}
@@ -143,7 +156,7 @@ export function DexPage() {
                 setPage(1)
               }}
               placeholder="搜索中文名、英文名或图鉴编号…"
-              className="h-9 pl-8"
+              className="h-10 pl-9"
               aria-label="搜索宝可梦"
             />
             {search ? (
@@ -168,7 +181,7 @@ export function DexPage() {
                 setGeneration(event.target.value)
                 setPage(1)
               }}
-              className="h-9 appearance-none rounded-lg border border-input bg-background pr-8 pl-3 text-sm text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="h-10 appearance-none rounded-xl border border-input/80 bg-background/70 pr-8 pl-3 text-sm text-foreground transition-colors hover:border-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none"
               aria-label="按登场世代筛选"
             >
               {GENERATIONS.map(({ value, label }) => (
@@ -202,6 +215,58 @@ export function DexPage() {
           />
         </div>
 
+        {/* 对战分类筛选：普通 / 准神 / 一级神 / 二级神 / 幻兽 / 悖谬（带数量） */}
+        <div
+          className="-mx-1 mt-2.5 flex flex-wrap items-center gap-1.5 px-1"
+          role="group"
+          aria-label="按对战分类筛选"
+        >
+          <span className="mr-0.5 shrink-0 text-[11px] text-muted-foreground">对战分类</span>
+          <button
+            type="button"
+            onClick={() => {
+              setBattleClass('all')
+              setPage(1)
+            }}
+            aria-pressed={battleClass === 'all'}
+            className={cn(
+              'shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors',
+              battleClass === 'all'
+                ? 'border-transparent bg-primary text-primary-foreground shadow-sm'
+                : 'border-border/70 text-muted-foreground hover:border-primary/25 hover:bg-muted hover:text-foreground',
+            )}
+          >
+            全部
+          </button>
+          {BATTLE_CLASSES.map((key) => {
+            const active = battleClass === key
+            const count = list.data?.battle_class_counts?.[key]
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setBattleClass(active ? 'all' : key)
+                  setPage(1)
+                }}
+                aria-pressed={active}
+                title={`只看「${BATTLE_CLASS_LABEL[key]}」`}
+                className={cn(
+                  'inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors',
+                  active
+                    ? 'border-primary/40 bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                {BATTLE_CLASS_LABEL[key]}
+                {typeof count === 'number' ? (
+                  <span className="text-[9px] opacity-70 tabular-nums">{count}</span>
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
+
         {/* 属性筛选：横向可滚动的色块；选中时整块填充该属性色 */}
         <div
           className="-mx-1 mt-2.5 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]"
@@ -218,8 +283,8 @@ export function DexPage() {
             className={cn(
               'shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
               type === 'all'
-                ? 'border-transparent bg-foreground text-background'
-                : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+                ? 'border-transparent bg-primary text-primary-foreground shadow-sm'
+                : 'border-border/70 text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
             全部
@@ -323,7 +388,7 @@ export function DexPage() {
               onSort={(next) => changePrefs({ sort: next })}
             />
           ) : (
-            <ul className={cn('grid gap-3', GRID_CLASSES[density])}>
+            <ul className={cn('grid gap-3.5', GRID_CLASSES[density])}>
               {list.data.items.map((p) => (
                 <li key={p.dex_number}>
                   <DexGridCard pokemon={p} dense={density === 'compact'} />
@@ -396,7 +461,7 @@ function ViewControls({
 
       {/* 视图切换：卡片 / 列表 */}
       <div
-        className="inline-flex rounded-lg border p-0.5"
+        className="inline-flex rounded-xl border border-border/70 bg-background/50 p-1"
         role="group"
         aria-label="切换视图"
       >
@@ -405,10 +470,10 @@ function ViewControls({
           onClick={() => onChangeView('card')}
           aria-pressed={view === 'card'}
           className={cn(
-            'inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+            'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
             view === 'card'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              ? 'gradient-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
           )}
         >
           <LayoutGrid aria-hidden="true" className="size-3.5" />
@@ -419,10 +484,10 @@ function ViewControls({
           onClick={() => onChangeView('list')}
           aria-pressed={view === 'list'}
           className={cn(
-            'inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+            'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
             view === 'list'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              ? 'gradient-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
           )}
         >
           <List aria-hidden="true" className="size-3.5" />
@@ -439,7 +504,7 @@ function ViewControls({
               value={listSize}
               onChange={(event) => onChangeListSize(Number(event.target.value) as ListPageSize)}
               aria-label="列表每页条数"
-              className="h-7 appearance-none rounded-md border border-input bg-background pr-6 pl-2 text-xs text-foreground tabular-nums focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="h-8 appearance-none rounded-lg border border-border/70 bg-background/60 pr-6 pl-2 text-xs text-foreground tabular-nums transition-colors hover:border-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none"
             >
               {LIST_PAGE_SIZES.map((size) => (
                 <option key={size} value={size}>
@@ -457,13 +522,13 @@ function ViewControls({
 
       {/* 密度：只在卡片模式有意义；列表模式固定按行显示 */}
       {view === 'card' ? (
-        <div className="inline-flex items-center rounded-lg border p-0.5" role="group" aria-label="调整卡片大小">
+        <div className="inline-flex items-center rounded-xl border border-border/70 bg-background/50 p-1" role="group" aria-label="调整卡片大小">
           <button
             type="button"
             onClick={() => onChangeDensity(shiftDensity(density, -1))}
             disabled={density === 'compact'}
             aria-label="缩小卡片"
-            className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+            className="inline-flex size-6 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
           >
             <Minimize2 aria-hidden="true" className="size-3.5" />
           </button>
@@ -475,7 +540,7 @@ function ViewControls({
             onClick={() => onChangeDensity(shiftDensity(density, 1))}
             disabled={density === 'large'}
             aria-label="放大卡片"
-            className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+            className="inline-flex size-6 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
           >
             <Maximize2 aria-hidden="true" className="size-3.5" />
           </button>
@@ -580,7 +645,7 @@ function PageButton({
       className={cn(
         'h-7 min-w-7 rounded-md px-1.5 text-xs font-medium tabular-nums transition-colors',
         active
-          ? 'bg-primary text-primary-foreground'
+          ? 'gradient-primary text-primary-foreground shadow-sm'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground',
       )}
     >

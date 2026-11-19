@@ -27,6 +27,8 @@ const detail: PokemonDetail = {
   is_legendary: false,
   is_mythical: false,
   is_baby: false,
+  battle_class: 'normal',
+  battle_class_zh: '普通',
   gender_rate: 1,
   capture_rate: 45,
   base_happiness: 50,
@@ -49,6 +51,15 @@ const detail: PokemonDetail = {
 
 vi.mock('@/features/dex/hooks', () => ({
   usePokemonDetail: () => ({ isPending: false, isError: false, data: detail, refetch: vi.fn() }),
+  usePokemonForm: () => ({ isPending: false, isError: false, data: null }),
+  // 顶部搜索栏复用列表 hook；详情页测试里空输入，不触发查询
+  useDebouncedValue: (value: string) => value,
+  usePokemonList: () => ({
+    isPending: false,
+    isError: false,
+    data: { items: [], meta: { page: 1, page_size: 8, total: 0, total_pages: 1 } },
+    refetch: vi.fn(),
+  }),
 }))
 
 vi.mock('@/features/abilities/hooks', () => ({
@@ -103,6 +114,23 @@ describe('PokemonDetailPage 译文来源标注', () => {
     expect(screen.getByRole('link', { name: '茂盛' })).toHaveAttribute(
       'href',
       '/abilities?q=overgrow&expand=overgrow',
+    )
+  })
+})
+
+describe('PokemonDetailPage 对战分类徽章', () => {
+  it('Hero 里显示对战分类（普通也显示，便于确认）', () => {
+    render(
+      <MemoryRouter initialEntries={['/dex/906']}>
+        <Routes>
+          <Route path="/dex/:dexNumber" element={<PokemonDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('普通')).toHaveAttribute(
+      'title',
+      expect.stringContaining('对战分类'),
     )
   })
 })

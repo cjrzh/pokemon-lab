@@ -275,4 +275,28 @@ describe('DoublesCard', () => {
     // 切到普通形态后，排名概览随之更新
     expect(screen.getByText('#241')).toBeInTheDocument()
   })
+
+  it('推荐配置与「全部招式」里的招式都链到招式详情页', async () => {
+    renderCard()
+
+    // 推荐配置（冠军格式：守住 / 热风）与「全部招式」列表都渲染这两条
+    const links = screen.getAllByRole('link', { name: /热风/ })
+    expect(links.length).toBeGreaterThanOrEqual(2)
+    for (const link of links) {
+      expect(link).toHaveAttribute('href', '/moves/heat-wave')
+    }
+    expect(screen.getAllByRole('link', { name: /守住/ })[0]).toHaveAttribute(
+      'href',
+      '/moves/protect',
+    )
+  })
+
+  it('道具列表里没有招式链接', async () => {
+    renderCard()
+
+    // 「其他道具」默认折叠；道具行仍是纯文本，不会被误链到招式页
+    await userEvent.click(screen.getByRole('button', { name: /其他道具/ }))
+    const allItems = screen.getByRole('button', { name: /其他道具/ }).closest('div')!
+    expect(within(allItems).queryByRole('link')).not.toBeInTheDocument()
+  })
 })

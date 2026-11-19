@@ -197,6 +197,9 @@ async def test_move_detail_lists_learners_and_versions(client: AsyncClient) -> N
     assert learners[1]["name_zh"] == "妙蛙种子"
     assert learners[1]["types"] == ["grass", "poison"]
     assert learners[1]["version_groups"]["scarlet-violet"][0]["method"] == "machine"
+    # 小图标：本地缓存优先，缺失时回落远程代理（种子数据没有 sprite_path）
+    assert learners[1]["sprite_url"].endswith("/1.png")
+    assert learners[1]["sprite_url"].startswith("https://")
 
 
 async def test_move_detail_keeps_level_up_levels(client: AsyncClient) -> None:

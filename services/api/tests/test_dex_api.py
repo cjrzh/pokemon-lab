@@ -85,6 +85,41 @@ async def test_list_pokemon_search_zh_and_en(client: AsyncClient) -> None:
     assert [i["name_en"] for i in payload["items"]] == ["bulbasaur"]
 
 
+async def test_list_pokemon_prefix_search(client: AsyncClient) -> None:
+    """`prefix=true` 只保留以 q 开头的名称；默认仍是子串匹配。"""
+    await _seed(client)
+
+    # 子串：名字中段也能命中
+    payload = (await client.get(POKEMON_URL, params={"q": "龙"})).json()
+    assert [i["dex_number"] for i in payload["items"]] == [4]
+
+    # 前缀：中段命中被排除
+    payload = (await client.get(POKEMON_URL, params={"q": "龙", "prefix": "true"})).json()
+    assert payload["items"] == []
+
+    payload = (await client.get(POKEMON_URL, params={"q": "小火", "prefix": "true"})).json()
+    assert [i["name_zh"] for i in payload["items"]] == ["小火龙"]
+
+    # 英文名前缀（不区分大小写）
+    payload = (await client.get(POKEMON_URL, params={"q": "squ", "prefix": "true"})).json()
+    assert [i["name_en"] for i in payload["items"]] == ["squirtle"]
+
+    # 纯数字仍按编号精确匹配，不受 prefix 影响
+    payload = (await client.get(POKEMON_URL, params={"q": "7", "prefix": "true"})).json()
+    assert [i["dex_number"] for i in payload["items"]] == [7]
+
+
+async def test_list_pokemon_search_escapes_like_wildcards(client: AsyncClient) -> None:
+    """`%` / `_` 是 LIKE 通配符，用户输入要按字面匹配而不是模式。"""
+    await _seed(client)
+
+    payload = (await client.get(POKEMON_URL, params={"q": "%"})).json()
+    assert payload["items"] == []
+
+    payload = (await client.get(POKEMON_URL, params={"q": "小_龙", "prefix": "true"})).json()
+    assert payload["items"] == []
+
+
 async def test_list_pokemon_type_filter(client: AsyncClient) -> None:
     await _seed(client)
     payload = (await client.get(POKEMON_URL, params={"type": "fire"})).json()
@@ -812,3 +847,111 @@ async def test_admin_sync_status_per_generation(client: AsyncClient) -> None:
     await _seed(client)  # 三条都是第 1 世代
     payload = (await client.get(f"{ADMIN_URL}/pokemon/sync/status")).json()
     assert payload["per_generation"] == {"1": 3}
+
+
+# ---------------------------------------------------------------------------
+# 对战分类
+# ---------------------------------------------------------------------------
+
+
+async def test_list_returns_battle_class(client: AsyncClient) -> None:
+    """列表项带分类键与中文名（普通也返回，前端按需隐藏徽章）。"""
+    await _seed(client)
+    payload = (await client.get(POKEMON_URL)).json()
+
+    first = payload["items"][0]
+    assert first["battle_class"] == "normal"
+    assert first["battle_class_zh"] == "普通"
+    assert payload["battle_class_counts"]["normal"] == 3
+
+
+async def test_filter_by_battle_class(client: AsyncClient) -> None:
+    """按分类筛选走 SQL 条件，分页与结果都正确。"""
+    await _seed(client)
+    # 追加几只不同分类的
+    from app.db.engine import get_session_factory
+
+    factory = get_session_factory()
+    async with factory() as session:
+        session.add_all(
+            [
+                pokemon_repo.Pokemon(
+                    **_seed_record(149, "dragonite", "快龙", ["dragon", "flying"])
+                ),
+                pokemon_repo.Pokemon(
+                    **_seed_record(151, "mew", "梦幻", ["psychic"])
+                ),
+                pokemon_repo.Pokemon(
+                    **_seed_record(144, "articuno", "急冻鸟", ["ice", "flying"])
+                ),
+            ]
+        )
+        # 传说 / 幻兽标记需显式设置（_seed_record 默认 False）
+        from sqlalchemy import select
+
+        legendary_flags = ((149, False, False), (151, False, True), (144, True, False))
+        for dex, legendary, mythical in legendary_flags:
+            row = (
+                await session.execute(
+                    select(pokemon_repo.Pokemon).where(pokemon_repo.Pokemon.dex_number == dex)
+                )
+            ).scalar_one()
+            row.is_legendary = legendary
+            row.is_mythical = mythical
+        await session.commit()
+
+    async def names_for(battle_class: str) -> list[str]:
+        resp = await client.get(POKEMON_URL, params={"battle_class": battle_class})
+        assert resp.status_code == 200, resp.text
+        return [item["name_en"] for item in resp.json()["items"]]
+
+    assert await names_for("pseudo_legendary") == ["dragonite"]
+    assert await names_for("mythical") == ["mew"]
+    assert await names_for("sub_legendary") == ["articuno"]
+    # 普通：排除以上所有
+    assert "dragonite" not in await names_for("normal")
+    assert "mew" not in await names_for("normal")
+
+
+async def test_battle_class_counts(client: AsyncClient) -> None:
+    await _seed(client)
+    payload = (await client.get(POKEMON_URL)).json()
+    counts = payload["battle_class_counts"]
+
+    assert set(counts) == {
+        "normal",
+        "pseudo_legendary",
+        "restricted",
+        "sub_legendary",
+        "mythical",
+        "paradox",
+    }
+    assert sum(counts.values()) == 3
+
+
+async def test_invalid_battle_class_rejected(client: AsyncClient) -> None:
+    await _seed(client)
+    response = await client.get(POKEMON_URL, params={"battle_class": "unknown"})
+    assert response.status_code == 422
+
+
+async def test_detail_returns_battle_class(client: AsyncClient) -> None:
+    """详情页与列表用同一套分类规则。"""
+    await _seed(client)
+    detail = (await client.get(f"{POKEMON_URL}/1")).json()
+    assert detail["battle_class"] == "normal"
+    assert detail["battle_class_zh"] == "普通"
+
+    # 快龙是准神
+    from app.db.engine import get_session_factory
+
+    factory = get_session_factory()
+    async with factory() as session:
+        session.add(
+            pokemon_repo.Pokemon(**_seed_record(149, "dragonite", "快龙", ["dragon", "flying"]))
+        )
+        await session.commit()
+
+    dragonite = (await client.get(f"{POKEMON_URL}/149")).json()
+    assert dragonite["battle_class"] == "pseudo_legendary"
+    assert dragonite["battle_class_zh"] == "准神"

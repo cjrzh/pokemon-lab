@@ -15,7 +15,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PokemonSprite } from '@/features/dex/components/PokemonSprite'
 import { TypeBadge } from '@/features/dex/components/TypeBadge'
+import { resolveMediaUrl } from '@/features/dex/api'
 import {
   DAMAGE_CLASS_LABEL,
   DAMAGE_CLASS_TONE,
@@ -296,9 +298,12 @@ function LearnerCard({
       to={`/dex/${learner.dex_number}`}
       className="group flex h-full items-center gap-2 rounded-lg border px-2 py-1.5 transition-colors hover:border-primary/40 hover:bg-muted"
     >
-      <span className="w-9 shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums">
-        #{String(learner.dex_number).padStart(4, '0')}
-      </span>
+      <PokemonSprite
+        src={resolveMediaUrl(learner.sprite_url)}
+        alt={learner.name_zh ?? learner.name_en}
+        type={learner.types[0]}
+        className="size-7"
+      />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1">
           {learner.is_legendary ? (
@@ -307,6 +312,9 @@ function LearnerCard({
           {learner.is_mythical ? (
             <Sparkles aria-label="幻之宝可梦" className="size-2.5 shrink-0 text-primary" />
           ) : null}
+          <span className="shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums">
+            #{String(learner.dex_number).padStart(4, '0')}
+          </span>
           <span className="truncate text-xs font-medium group-hover:text-primary">
             {learner.name_zh ?? learner.name_en}
           </span>

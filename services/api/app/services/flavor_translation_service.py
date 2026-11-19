@@ -125,3 +125,43 @@ def apply_flavor_fallback(record: dict) -> dict:
 def translation_data_dir() -> Path:
     """译文目录路径（供脚本与测试检查文件是否存在）。"""
     return get_settings().data_dir / FLAVOR_DIR_NAME
+
+
+# ---------------------------------------------------------------------------
+# 道具说明译文（data/items/effects-zh.json）
+# ---------------------------------------------------------------------------
+
+ITEMS_DIR_NAME = "items"
+ITEM_EFFECTS_FILE = "effects-zh.json"
+
+
+@lru_cache(maxsize=1)
+def load_item_effect_translations() -> dict[str, str]:
+    """加载道具说明译文：道具 slug → 中文说明。
+
+    PokéAPI 的 `effect_entries` 只有英文，这里用仓库内项目自译补齐。
+    与图鉴描述不同，没有「上游官方中文」可优先：该字段存在就表示是项目自译，
+    数据库的 `effect_zh_source` 会如实标为 `project`。
+    """
+    path = get_settings().data_dir / ITEMS_DIR_NAME / ITEM_EFFECTS_FILE
+    if not path.exists():
+        logger.warning("道具说明译文文件不存在，跳过：%s", path)
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        raw = payload["entries"]
+        entries: dict[str, str] = {}
+        for slug, text in raw.items():
+            if not isinstance(text, str) or not text.strip():
+                raise FlavorTranslationError(f"{path.name} 中 {slug} 的译文为空")
+            entries[str(slug)] = text.strip()
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        raise FlavorTranslationError(f"道具译文文件损坏（{path}）：{exc}") from exc
+
+    logger.info("已加载 %d 条道具说明译文", len(entries))
+    return entries
+
+
+def reset_item_effect_translation_cache() -> None:
+    """测试用：清空译文缓存。"""
+    load_item_effect_translations.cache_clear()

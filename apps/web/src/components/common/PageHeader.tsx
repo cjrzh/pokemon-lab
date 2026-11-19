@@ -6,17 +6,27 @@ export interface PageHeaderProps {
   actions?: ReactNode
 }
 
-/** 统一页面头部：所有页面共用同一套标题层级与间距。 */
+/** 统一页面头部：渐变装饰线、标题层级与操作区在所有页面保持一致。 */
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+    <header className="mb-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
       <div className="min-w-0">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">{title}</h1>
+        <div
+          aria-hidden="true"
+          className="glow-line mb-3.5 h-1 w-10 rounded-full opacity-90"
+        />
+        <h1 className="font-heading text-[1.7rem] leading-[1.15] font-semibold tracking-tight sm:text-[2rem]">
+          {title}
+        </h1>
         {description ? (
-          <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-2 max-w-3xl text-[13px] leading-6 text-muted-foreground sm:text-sm">
+            {description}
+          </p>
         ) : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+      ) : null}
     </header>
   )
 }

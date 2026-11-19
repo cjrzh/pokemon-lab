@@ -39,7 +39,9 @@ SECTION_NAMES = (
 #: 我们关心的段落（Checks / IVs / Happiness 不用于展示）。
 _USED_SECTIONS = ("Abilities", "Items", "Spreads", "Moves", "Teammates", "Tera Types")
 
-_USAGE_ROW = re.compile(r"^\s*\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([\d.]+)%")
+_USAGE_ROW = re.compile(
+    r"^\s*\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([\d.]+)%\s*\|\s*(\d+)\s*\|"
+)
 _BATTLES = re.compile(r"Total battles:\s*(\d+)")
 _RAW_COUNT = re.compile(r"^Raw count:\s*(\d+)")
 #: 块头下方的统计行。它们不是宝可梦标题，即使被分隔线包住也不能当成新块。
@@ -66,6 +68,8 @@ class UsageRow:
     rank: int
     name: str
     usage: float
+    #: 原始场次（表格的 Raw 列）；老格式的列布局不同时为 0
+    raw_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -116,6 +120,7 @@ def parse_usage_table(text: str) -> UsageTable:
                 rank=int(match.group(1)),
                 name=match.group(2).strip(),
                 usage=float(match.group(3)),
+                raw_count=int(match.group(4)) if match.group(4) else 0,
             )
         )
     if not rows:

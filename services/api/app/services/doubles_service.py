@@ -333,11 +333,57 @@ async def get_format(session: AsyncSession, key: str) -> DoubleFormat | None:
 async def get_stat(
     session: AsyncSession, dex_number: int, format_key: str
 ) -> DoublePokemonStat | None:
+    """该编号在某格式下的**使用率最高**的一条统计。
+
+    同一图鉴编号下可能有多个形态各有一条记录（如火伊布的热洛托姆 / 清洗洛托姆，
+    或喷火龙的普通 / 超级进化 X / Y）。这里按使用率降序取第一条，而不是
+    `scalar_one_or_none()` —— 后者在有形态时会直接抛 `MultipleResultsFound`
+    （建队页打开洛托姆即 500 的原因）。需要指定形态时用 `get_stat_for_name`。
+    """
+    rows = (
+        await session.execute(
+            select(DoublePokemonStat)
+            .where(
+                DoublePokemonStat.dex_number == dex_number,
+                DoublePokemonStat.format_key == format_key,
+            )
+            .order_by(DoublePokemonStat.usage.desc(), DoublePokemonStat.rank.asc())
+            .limit(1)
+        )
+    ).scalars().all()
+    return rows[0] if rows else None
+
+
+async def get_stats_for_dex(
+    session: AsyncSession, dex_number: int, format_key: str
+) -> list[DoublePokemonStat]:
+    """该编号在某格式下的全部统计条目（每个形态一条），按使用率降序。"""
+    return list(
+        (
+            await session.execute(
+                select(DoublePokemonStat)
+                .where(
+                    DoublePokemonStat.dex_number == dex_number,
+                    DoublePokemonStat.format_key == format_key,
+                )
+                .order_by(DoublePokemonStat.usage.desc(), DoublePokemonStat.rank.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+
+async def get_stat_for_name(
+    session: AsyncSession, dex_number: int, format_key: str, showdown_name: str
+) -> DoublePokemonStat | None:
+    """指定形态的统计条目（按 Showdown 名精确匹配）。"""
     return (
         await session.execute(
             select(DoublePokemonStat).where(
                 DoublePokemonStat.dex_number == dex_number,
                 DoublePokemonStat.format_key == format_key,
+                DoublePokemonStat.showdown_name == showdown_name,
             )
         )
     ).scalar_one_or_none()
