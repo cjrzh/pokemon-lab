@@ -1,9 +1,12 @@
 /**
- * 单只成员的 Showdown 代码（建队页「一键复制」用）。
+ * 建队页「一键复制」用的 Showdown 代码。
  *
- * 复用 `features/doubles/showdown.ts:renderShowdown` —— 与详情页的导出代码
- * 同一套规则（行尾两个空格、省略 0 EV / 31 IV、交易前缀在第一行），
- * 避免建队页与导出页各写一份、慢慢走样。
+ * 复用 `features/doubles/showdown.ts:renderShowdown` —— 与导出页的代码同一套规则
+ * （行尾两个空格、省略 0 EV / 31 IV），避免建队页与导出页各写一份、慢慢走样。
+ *
+ * 与导出页的区别：建队页只复制**队伍本体**，不带交易机器人前缀
+ * （`!tradeSV` / `!tradeSWSH` / `!tradeBDSP`）。要发给交换机器人时，
+ * 用队伍导出页或双打页的代码。
  */
 
 import type { TeamLanguage, TeamMember } from '@/features/teams/api'
@@ -31,46 +34,35 @@ export function memberToDraft(member: TeamMember, defaultLevel: number): Showdow
 }
 
 /**
- * 整队的 Showdown 文本：每只之间空一行，交易前缀只出现一次（首行）。
+ * 整队的 Showdown 文本：每只之间空一行，**不含**交易前缀。
  *
  * 与单只复制使用同一套渲染规则，因此「整队复制」与逐只复制拼起来的结果一致。
- * 冠军格式没有交易前缀（传 null）。
  */
 export function renderTeamShowdown(
   members: TeamMember[],
   options: {
     formatKey: string
     defaultLevel: number
-    tradePrefix: string | null
   },
 ): string {
-  const body = members
-    .map((member) =>
-      // 单只的渲染带前缀；整队只在最前面加一次，所以先按无前缀渲染
-      renderMemberShowdown(member, { ...options, tradePrefix: null }),
-    )
+  return members
+    .map((member) => renderMemberShowdown(member, options))
     .filter(Boolean)
     .join('\n\n')
-  if (!body) return ''
-  return options.tradePrefix ? `${options.tradePrefix}\n${body}` : body
 }
 
 /**
- * 单只的 Showdown 文本。
- *
- * `tradePrefix` 为 BDSP / 剑盾 / 朱紫的交易命令（如 `!tradeSV`）。带上它就可以
- * 直接把这一只发给交换机器人；冠军格式没有前缀，传 null。
+ * 单只的 Showdown 文本，**不含**交易前缀（建队页粘贴到 Showdown 里就是纯队伍）。
  */
 export function renderMemberShowdown(
   member: TeamMember,
   options: {
     formatKey: string
     defaultLevel: number
-    tradePrefix: string | null
   },
 ): string {
   return renderShowdown(memberToDraft(member, options.defaultLevel), {
-    tradePrefix: options.tradePrefix,
+    tradePrefix: null,
     includeTera: options.formatKey === 'sv',
     // 极巨化等级只在剑盾有意义（朱紫没有极巨化、冠军不输出）
     includeDynamax: options.formatKey === 'swsh',

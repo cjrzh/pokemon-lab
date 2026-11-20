@@ -664,17 +664,14 @@ export function TeamsPage() {
                   )}
                   保存
                 </Button>
-                {/* 整队一键复制：与逐只复制同一套渲染规则，交易前缀只在首行 */}
+                {/* 整队一键复制：只复制队伍本体，不带交易机器人前缀 */}
                 <CopyShowdownButton
                   text={renderTeamShowdown(draft.members, {
                     formatKey: draft.format_key,
                     defaultLevel: draft.default_level,
-                    tradePrefix: draft.trade_prefix,
                   })}
-                  label={`复制整队 Showdown 代码${draft.trade_prefix ? '（含交易前缀）' : ''}`}
-                  fallbackText={`无法自动复制，请手动全选复制整队代码${
-                    draft.trade_prefix ? '（已带上交易前缀）' : ''
-                  }：`}
+                  label="复制整队 Showdown 代码"
+                  fallbackText="无法自动复制，请手动全选复制整队代码："
                   fallbackClassName="h-40"
                 >
                   复制整队
@@ -731,7 +728,6 @@ export function TeamsPage() {
                   formatKey={draft.format_key}
                   pointsKind={draft.points_kind}
                   defaultLevel={draft.default_level}
-                  tradePrefix={draft.trade_prefix}
                   member={member}
                   teamMembers={draft.members}
                   selectedForm={memberForms[member.dex_number]}

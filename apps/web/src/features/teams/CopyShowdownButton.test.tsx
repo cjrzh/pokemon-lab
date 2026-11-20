@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { CopyShowdownButton } from '@/features/teams/CopyShowdownButton'
 
-const TEXT = '!tradeSV\nCharizard @ Life Orb  \nAbility: Blaze  '
+const TEXT = 'Charizard @ Life Orb  \nAbility: Blaze  '
 
 describe('CopyShowdownButton', () => {
   it('点击写入剪贴板并显示已复制', async () => {
@@ -21,7 +21,7 @@ describe('CopyShowdownButton', () => {
     expect(writeText).toHaveBeenCalledWith(TEXT)
   })
 
-  it('剪贴板失败时显示可手动复制的文本框（内容含交易前缀）', async () => {
+  it('剪贴板失败时显示可手动复制的文本框', async () => {
     Object.assign(navigator, {
       clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
     })
@@ -31,6 +31,5 @@ describe('CopyShowdownButton', () => {
 
     const area = await screen.findByRole('textbox', { name: /手动复制/ })
     expect(area).toHaveValue(TEXT)
-    expect(screen.getByText(/已带上交易前缀/)).toBeInTheDocument()
   })
 })

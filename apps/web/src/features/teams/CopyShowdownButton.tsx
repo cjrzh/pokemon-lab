@@ -17,10 +17,10 @@ export function CopyShowdownButton({
   label,
   className,
   children,
-  fallbackText = '无法自动复制，请手动全选复制（已带上交易前缀）：',
+  fallbackText = '无法自动复制，请手动全选复制：',
   fallbackClassName,
 }: {
-  /** 完整文本（含交易前缀）。 */
+  /** 完整文本。 */
   text: string
   /** 无障碍标签与提示，如「复制 喷火龙 的 Showdown 代码」。 */
   label: string

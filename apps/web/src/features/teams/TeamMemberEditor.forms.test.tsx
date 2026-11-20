@@ -115,7 +115,6 @@ function renderEditor(member: TeamMember, onChange = vi.fn(), onFormChange = vi.
                 formatKey="sv"
                 pointsKind="ev"
                 defaultLevel={50}
-                tradePrefix="!tradeSV"
                 teamMembers={[member]}
                 onChange={onChange}
                 onRemove={() => undefined}

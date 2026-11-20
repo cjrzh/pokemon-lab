@@ -505,7 +505,7 @@ describe('TeamsPage', () => {
     expect(screen.getByText('剑盾队伍')).toBeInTheDocument()
   })
 
-  it('每只宝可梦后面有一键复制 Showdown 代码的按钮（带交易前缀）', async () => {
+  it('每只宝可梦后面有一键复制 Showdown 代码的按钮（不带交易前缀）', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, { clipboard: { writeText } })
 
@@ -513,17 +513,17 @@ describe('TeamsPage', () => {
     await startNewTeam()
     await addCharizard()
 
-    const button = screen.getByRole('button', { name: /复制 喷火龙 的 Showdown 代码（含交易前缀）/ })
+    const button = screen.getByRole('button', { name: '复制 喷火龙 的 Showdown 代码' })
     await userEvent.click(button)
 
     expect(writeText).toHaveBeenCalledTimes(1)
     const copied = writeText.mock.calls[0][0] as string
-    // 队伍是朱紫：第一行是交易命令
-    expect(copied.split('\n')[0]).toBe('!tradeSV')
-    expect(copied).toContain('Charizard')
+    // 建队页只复制队伍本体：没有 !trade 交易前缀行
+    expect(copied).not.toContain('!trade')
+    expect(copied.startsWith('Charizard')).toBe(true)
   })
 
-  it('整队一键复制：交易前缀只在首行，每只之间空一行', async () => {
+  it('整队一键复制：只有队伍本体，不带交易前缀，每只之间空一行', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, { clipboard: { writeText } })
 
@@ -535,9 +535,8 @@ describe('TeamsPage', () => {
 
     expect(writeText).toHaveBeenCalledTimes(1)
     const copied = writeText.mock.calls[0][0] as string
-    expect(copied.split('\n')[0]).toBe('!tradeSV')
-    expect(copied.match(/!tradeSV/g)).toHaveLength(1)
-    expect(copied).toContain('Charizard')
+    expect(copied).not.toContain('!trade')
+    expect(copied.startsWith('Charizard')).toBe(true)
   })
 
   it('剑盾队伍的单只复制不带 Language 行', async () => {

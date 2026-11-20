@@ -65,7 +65,6 @@ export function TeamMemberEditor({
   formatKey,
   pointsKind,
   defaultLevel,
-  tradePrefix,
   teamMembers,
   onChange,
   onRemove,
@@ -86,8 +85,6 @@ export function TeamMemberEditor({
   formatKey: string
   pointsKind: 'ev' | 'stat_points'
   defaultLevel: number
-  /** 交易机器人前缀（BDSP / 剑盾 / 朱紫；冠军为 null）。 */
-  tradePrefix: string | null
   /** 同队其它成员（用于提示道具 / 编号重复）。 */
   teamMembers: TeamMember[]
   onChange: (next: TeamMember) => void
@@ -347,8 +344,8 @@ export function TeamMemberEditor({
           </span>
         </button>
         <CopyShowdownButton
-          text={renderMemberShowdown(member, { formatKey, defaultLevel, tradePrefix })}
-          label={`复制 ${displayName} 的 Showdown 代码${tradePrefix ? '（含交易前缀）' : ''}`}
+          text={renderMemberShowdown(member, { formatKey, defaultLevel })}
+          label={`复制 ${displayName} 的 Showdown 代码`}
         />
         {onMoveUp || onMoveDown ? (
           <span className="flex shrink-0 items-center">
