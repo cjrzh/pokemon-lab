@@ -65,3 +65,15 @@ export function fetchItemList(
 export function itemDisplayName(item: ItemSummary): string {
   return item.zh ?? item.name_en ?? item.name
 }
+
+/**
+ * 跳转到道具页并定位到某个道具。
+ *
+ * 道具没有独立详情页（列表页就是「具体页面」）：用 `q` 带上名称，
+ * 目标页会把它回填进搜索框并只显示匹配项。后端 `q` 同时匹配
+ * name / name_en / 中文名，所以中文名与 slug 都能命中。
+ */
+export function itemDetailLink(name: string): string {
+  const params = new URLSearchParams({ q: name })
+  return `/items?${params.toString()}`
+}

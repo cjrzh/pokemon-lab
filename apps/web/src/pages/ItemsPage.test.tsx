@@ -72,9 +72,9 @@ vi.mock('@/features/dex/hooks', async (importOriginal) => {
 
 const { ItemsPage } = await import('@/pages/ItemsPage')
 
-function renderPage() {
+function renderPage(entry = '/items') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[entry]}>
       <ItemsPage />
     </MemoryRouter>,
   )
@@ -137,6 +137,23 @@ describe('ItemsPage', () => {
 
     expect(state.params.q).toBeUndefined()
     expect(state.params.category).toBeUndefined()
+  })
+
+  it('URL 带 q 时预填搜索框并按该关键词请求（冠军图鉴的道具链接靠它定位）', () => {
+    renderPage('/items?q=文柚果')
+
+    expect(screen.getByRole('textbox', { name: '搜索道具' })).toHaveValue('文柚果')
+    expect(state.params.q).toBe('文柚果')
+    expect(state.params.page).toBe(1)
+  })
+
+  it('清空搜索会从 URL 里去掉 q', async () => {
+    renderPage('/items?q=文柚果')
+
+    await userEvent.click(screen.getByRole('button', { name: '清空搜索' }))
+
+    expect(state.params.q).toBeUndefined()
+    expect(screen.getByRole('textbox', { name: '搜索道具' })).toHaveValue('')
   })
 })
 

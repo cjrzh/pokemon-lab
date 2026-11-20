@@ -3,6 +3,8 @@ import { Route, Routes } from 'react-router-dom'
 import { AdminShell } from './layout/AdminShell'
 import { AppShell } from './layout/AppShell'
 import { AbilitiesPage } from '@/pages/AbilitiesPage'
+import { ChampionDetailPage } from '@/pages/ChampionDetailPage'
+import { ChampionsPage } from '@/pages/ChampionsPage'
 import { AdminPokemonPage } from '@/pages/admin/AdminPokemonPage'
 import { AdminSyncPage } from '@/pages/admin/AdminSyncPage'
 import { DexPage } from '@/pages/DexPage'
@@ -29,6 +31,9 @@ export function AppRouter() {
         <Route index element={<HomePage />} />
         <Route path="dex" element={<DexPage />} />
         <Route path="dex/:dexNumber" element={<PokemonDetailPage />} />
+        {/* 冠军图鉴：宝可梦冠军双打（Reg M-C）的独立图鉴 */}
+        <Route path="champions" element={<ChampionsPage />} />
+        <Route path="champions/:dexNumber" element={<ChampionDetailPage />} />
         <Route path="abilities" element={<AbilitiesPage />} />
         <Route path="moves" element={<MovesPage />} />
         <Route path="moves/:moveName" element={<MoveDetailPage />} />

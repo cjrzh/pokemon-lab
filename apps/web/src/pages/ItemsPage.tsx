@@ -7,6 +7,7 @@
  */
 
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Backpack, CircleAlert, ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react'
 
 import { PageHeader } from '@/components/common/PageHeader'
@@ -29,10 +30,31 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100] as const
 const DEFAULT_PAGE_SIZE = 50
 
 export function ItemsPage() {
-  const [search, setSearch] = useState('')
+  // 搜索词与 URL 同步：冠军图鉴等页面用 `/items?q=<名称>` 直接定位到某个道具
+  const [searchParams, setSearchParams] = useSearchParams()
+  const qParam = searchParams.get('q') ?? ''
+
+  const [search, setSearch] = useState(qParam)
   const [category, setCategory] = useState('all')
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE)
   const [page, setPage] = useState(1)
+
+  // URL 的 q 变化时同步输入框（渲染期调整，避免多一轮渲染）
+  const [syncedQ, setSyncedQ] = useState(qParam)
+  if (syncedQ !== qParam) {
+    setSyncedQ(qParam)
+    setSearch(qParam)
+    setPage(1)
+  }
+
+  const updateSearch = (value: string) => {
+    setSearch(value)
+    setPage(1)
+    const next = new URLSearchParams(searchParams)
+    if (value.trim()) next.set('q', value.trim())
+    else next.delete('q')
+    setSearchParams(next, { replace: true })
+  }
 
   const debounced = useDebouncedValue(search, 300)
   const params: ItemListParams = useMemo(
@@ -52,7 +74,7 @@ export function ItemsPage() {
   const hasFilters = search.trim().length > 0 || category !== 'all'
 
   const reset = () => {
-    setSearch('')
+    updateSearch('')
     setCategory('all')
     setPage(1)
   }
@@ -85,10 +107,7 @@ export function ItemsPage() {
             />
             <Input
               value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(1)
-              }}
+              onChange={(event) => updateSearch(event.target.value)}
               placeholder="搜索道具名、英文名或说明…"
               className="h-10 pl-9"
               aria-label="搜索道具"
@@ -96,10 +115,7 @@ export function ItemsPage() {
             {search ? (
               <button
                 type="button"
-                onClick={() => {
-                  setSearch('')
-                  setPage(1)
-                }}
+                onClick={() => updateSearch('')}
                 className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-label="清空搜索"
               >

@@ -2,6 +2,7 @@ import {
   Backpack,
   BookOpen,
   Boxes,
+  Crown,
   Database,
   Calculator,
   House,
@@ -38,6 +39,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: '图鉴',
     description: '检索宝可梦并查看属性、种族值、形态与进化信息',
     icon: BookOpen,
+    delivered: true,
+  },
+  {
+    to: '/champions',
+    label: '冠军图鉴',
+    description: '宝可梦冠军双打：使用率排名、常见配装与能力点分配',
+    icon: Crown,
     delivered: true,
   },
   {
