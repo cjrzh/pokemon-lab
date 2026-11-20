@@ -35,6 +35,8 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+# pytest 临时目录（TEMP 被重定向时可能落在仓库内）
+pytest-of-*/
 .ruff_cache/
 .mypy_cache/
 .coverage
