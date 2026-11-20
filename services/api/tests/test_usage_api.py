@@ -11,6 +11,7 @@ import json
 from httpx import AsyncClient
 
 from app.db.engine import get_session_factory
+from app.domain.doubles_formats import FORMAT_BY_KEY
 from app.repositories import pokemon_repo
 from app.services.doubles_service import import_datasets, reset_labels_cache
 
@@ -178,10 +179,11 @@ async def test_ranking_always_lists_four_formats(client: AsyncClient, data_dir) 
     assert by_key["bdsp"]["entries"] == 0
     assert by_key["champions"]["imported"] is True
     assert by_key["champions"]["entries"] == 1
-    assert by_key["champions"]["month"] == "2026-09"
+    # 月份跟代码里的格式定义走（抓取月份升级时不必改测试）
+    assert by_key["champions"]["month"] == FORMAT_BY_KEY["champions"].month
     assert by_key["champions"]["cutoff"] == 1760
     # 未导入格式的元数据来自代码里的格式定义（保证页面能展示标签与月份）
-    assert by_key["sv"]["month"] == "2026-04"
+    assert by_key["sv"]["month"] == FORMAT_BY_KEY["sv"].month
     assert by_key["sv"]["source_url"].endswith("gen9vgc2026regi-1630.txt")
     assert payload["has_data"] is True
     assert payload["format_key"] == "bdsp"

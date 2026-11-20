@@ -102,7 +102,7 @@ uv run python scripts/backfill_flavor_zh.py   # 只读本地库 + 译文文件�
 | --- | --- |
 | 来源 | <https://www.smogon.com/stats/> —— Smogon University 每月公开的 Showdown 天梯统计（纯文本），非游戏客户端数据，无需密钥 |
 | 采集方式 | `services/api/scripts/fetch_doubles_stats.py` 抓取「使用率总表 + 招式 / 道具 / 配点明细」，写入仓库 `data/doubles/{format}.json`；`scripts/sync_doubles.py` 再导入 SQLite。抓取是手动低频操作（每月一次即可），站点运行时不访问 Smogon |
-| 格式与快照 | 冠军（`gen9championsvgc2026regmc`，2026-09，cutoff 1760）· 朱紫 Reg I（`gen9vgc2026regi`，2026-04，1630）· 剑盾 VGC 2022（`gen8vgc2022`，2022-11，1630）· BDSP 双打（`gen8bdspdoublesou`，2021-12，1500）。**每个格式固定一个历史月份**，页面始终展示「月份 + cutoff」，不把旧统计冒充当前环境 |
+| 格式与快照 | 冠军（`gen9championsvgc2026regmc`，2026-10，cutoff 1760）· 朱紫 Reg I（`gen9vgc2026regi`，2026-04，1630）· 剑盾 VGC 2022（`gen8vgc2022`，2022-11，1630）· BDSP 双打（`gen8bdspdoublesou`，2021-12，1500）。**每个格式固定一个历史月份**，页面始终展示「月份 + cutoff」，不把旧统计冒充当前环境 |
 | 为什么选这些档位 | BDSP / 剑盾 后期天梯样本很少；moveset 明细在高分段只收录样本足够的宝可梦，因此这两档选较低 cutoff 以覆盖更多宝可梦。朱紫 Reg I 是最后一个朱紫官方双打规则；冠军取最新完整月份 |
 | 展示内容 | 使用率排名与出场率、主流配点（性格 + 六项 EV / 能力点）、特性、道具、招式、常见队友（可跳转图鉴）、太晶属性（仅朱紫）。招式条目带属性徽章（配色与招式列表页一致，来自 `move_ref.type`） |
 | 配点含义 | 剑盾 / BDSP / 朱紫的配点是 EV（单项 0–252）；**宝可梦冠军没有 IV 系统**，统计里的数字是能力点（单项上限 32，社区常见合计 66），页面标注「点」而非 EV |
